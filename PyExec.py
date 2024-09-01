@@ -1,5 +1,6 @@
 import io
 import contextlib
+from comfy_execution.graph_utils import GraphBuilder
 
 CATEGORY = "SP-Nodes"
 
@@ -33,9 +34,12 @@ class PyExec:
     OUTPUT_NODE = False
 
     def doit(s, py, a1=None, a2=None, a3=None, a4=None, a5=None):
+        graph = GraphBuilder()
+
         try:
             output = io.StringIO()
             local_vars = {
+                'graph': graph,
                 'a1': a1,
                 'a2': a2,
                 'a3': a3,
@@ -69,7 +73,10 @@ class PyExec:
             captured_output = output.getvalue()
             print(f'PyExec: {captured_output}')
 
-            return result
+            return {
+                "result": result,
+                "expand": graph.finalize(),
+            }
         
         except Exception as e:
             import traceback
