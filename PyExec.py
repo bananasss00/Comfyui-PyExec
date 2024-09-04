@@ -99,8 +99,8 @@ class PyExec_OutputIsList:
     CATEGORY = CATEGORY
     OUTPUT_NODE = False
 
-    def doit(s, list_value):
-        return list_value,
+    def doit(s, value):
+        return value,
 
 NODE_CLASS_MAPPINGS = {
     "PyExec": PyExec, 
