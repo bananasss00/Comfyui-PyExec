@@ -40,7 +40,7 @@ const copyGraphNodes = function (nodes) {
             outputs.push(`${j}=${output.name}(${output.type})`);
         }
 
-        code.push(`graph.node(${args.join(', ')}); // out: ${outputs.join(',')}`)
+        code.push(`graph.node(${args.join(', ')}); # out: ${outputs.join(',')}`)
     }
 
     navigator.clipboard.writeText(code.join('\n'))
