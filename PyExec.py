@@ -102,8 +102,28 @@ class PyExec_OutputIsList:
     def doit(s, value):
         return value,
 
+class PyExec_OutputIsValue:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "list_value": (ANY_TYPE,),
+            },
+        }
+
+    RETURN_TYPES = (ANY_TYPE,)
+    RETURN_NAMES = ('value',)
+    OUTPUT_IS_LIST = (False,)
+    FUNCTION = "doit"
+    CATEGORY = CATEGORY
+    OUTPUT_NODE = False
+
+    def doit(s, list_value):
+        return list_value,
+
 NODE_CLASS_MAPPINGS = {
     "PyExec": PyExec, 
     "PyExec_Output": PyExec_Output, 
     "PyExec_OutputIsList": PyExec_OutputIsList, 
+    "PyExec_OutputIsValue": PyExec_OutputIsValue, 
 }
