@@ -86,7 +86,7 @@ const copyGraphNodes = (nodes) => {
 
     const mapWidgets = (widgets = []) => Object.fromEntries(
         widgets
-            .filter(widget => !widget.type.startsWith('converted-'))
+            .filter(widget => !widget.type?.startsWith('converted-') ?? true)
             .map(widget => [
                 widget.name,
                 { ...widget, var: makeUniqueName(widget.name) }
@@ -95,12 +95,14 @@ const copyGraphNodes = (nodes) => {
 
     const mapOutputs = (outputs = []) => Object.fromEntries(
         outputs.map(output => {
+            const outputLinks = Array.isArray(output.links) ? output.links : [];
+
             const outputObj = {
                 ...output,
                 var: makeUniqueName(output.label || output.name),
-                links: [...output.links]
+                links: [...outputLinks]
             };
-            output.links.forEach(link => (outLinks[link] = outputObj.var));
+            outputLinks.forEach(link => (outLinks[link] = outputObj.var));
             return [output.name, outputObj];
         })
     );
