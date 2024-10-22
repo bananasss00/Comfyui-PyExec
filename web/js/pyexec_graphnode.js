@@ -10,11 +10,10 @@ const addMenuHandler = (nodeType, cb)=> {
 }
 
 function toVar(str) {
-    return str
-        .trim()
+    return str?.trim()
         .toLowerCase()
         .replace(/[^a-z0-9\s_]/g, '')
-        .replace(/\s+/g, '_');
+        .replace(/\s+/g, '_') ?? '';
 }
 
 const copyGraphNodes = (nodes) => {
@@ -86,7 +85,9 @@ const copyGraphNodes = (nodes) => {
 
     const mapWidgets = (widgets = []) => Object.fromEntries(
         widgets
-            .filter(widget => !widget.type?.startsWith('converted-') ?? true)
+            .filter(widget => {
+                return (!widget.type?.startsWith('converted-') ?? true) && !widget.name.startsWith('control_before_generate') && !widget.name.startsWith('speak_and_recognation')
+            })
             .map(widget => [
                 widget.name,
                 { ...widget, var: makeUniqueName(widget.name) }
@@ -118,7 +119,11 @@ const copyGraphNodes = (nodes) => {
         });
 
         Object.values(node.widgets).forEach(widget => {
-            const value = typeof widget.value === 'string' ? `r"${widget.value}"` : widget.value;
+            const value = 
+                typeof widget.value === 'string' ? `r"${widget.value}"` :
+                widget.value === true ? 'True' :
+                widget.value === false ? 'False' :
+                widget.value;
             vars[widget.var] = value;
             args.push(`${widget.name}=${widget.var}`);
         });
