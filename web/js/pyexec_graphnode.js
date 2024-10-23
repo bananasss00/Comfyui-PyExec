@@ -64,6 +64,50 @@ const copyGraphNodes = (nodes) => {
         return sortedList;
     };
 
+    const deepClone = (obj, seen = new WeakMap()) => {
+        if (obj === null || typeof obj !== 'object') return obj;
+    
+        if (seen.has(obj)) return seen.get(obj);
+    
+        const copy = Array.isArray(obj) ? [] : Object.create(Object.getPrototypeOf(obj));
+        seen.set(obj, copy);
+    
+        for (const key of Object.keys(obj)) {
+            copy[key] = deepClone(obj[key], seen);
+        }
+    
+        return copy;
+    };
+
+    const rewireAndRemoveReroutes = (nodes) => {
+        const clonedNodes = nodes.map(node => deepClone(node));
+        const reroutes = clonedNodes.filter(node => node.type === "Reroute");
+        const connectionMap = {};
+    
+        reroutes.forEach(reroute => {
+            const inputLink = reroute.inputs[0].link;
+            const outputLinks = reroute.outputs[0].links;
+            connectionMap[inputLink] = outputLinks;
+        });
+    
+        clonedNodes.forEach(node => {
+            Object.values(node.inputs).forEach(input => {
+                const linkId = input.link;
+                if (connectionMap[linkId]) {
+                    input.link = connectionMap[linkId][0];
+                }
+            });
+    
+            Object.values(node.outputs).forEach(output => {
+                output.links = output.links?.flatMap(linkId =>
+                    connectionMap[linkId] || [linkId]
+                );
+            });
+        });
+    
+        return clonedNodes.filter(node => node.type !== "Reroute");
+    };    
+
     const createNodeObject = (node) => {
         const nodeObj = {
             title: node.title,
@@ -108,8 +152,10 @@ const copyGraphNodes = (nodes) => {
         })
     );
 
-    const nodeObjs = topologicalSort(Object.values(nodes).map(createNodeObject));
-
+    console.log(nodes);
+    const nodeObjs = topologicalSort(rewireAndRemoveReroutes(Object.values(nodes)).map(createNodeObject));
+    console.log(nodeObjs);
+    
     nodeObjs.forEach(node => {
         const args = [`'${node.type}'`];
 
