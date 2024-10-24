@@ -178,7 +178,8 @@ const copyGraphNodes = (nodes) => {
 
         Object.values(node.outputs).forEach((output, index) => {
             const links = output.links.join(', ');
-            code.push(`${output.var} = ${node.var}.out(${index}) # type: ${output.type}; links: ${links}`);
+            // code.push(`${output.var} = ${node.var}.out(${index}) # type: ${output.type}; links: ${links}`);
+            code.push(`${output.var} = ${node.var}.out(${index})`);
         });
 
         code.push('');
