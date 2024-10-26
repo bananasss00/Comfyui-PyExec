@@ -9,10 +9,12 @@ const addMenuHandler = (nodeType, cb)=> {
 	};
 }
 
-function toVar(str) {
+function toVar(str, lower=true) {
+    if (lower) {
+        str = str.toLowerCase();
+    }
     return str?.trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9\s_]/g, '')
+        .replace(/[^A-z0-9\s_]/g, '')
         .replace(/\s+/g, '_') ?? '';
 }
 
@@ -199,6 +201,139 @@ const copyGraphNodes = (nodes) => {
     navigator.clipboard.writeText(codeStr).catch(err => console.error('Error:', err));
 };
 
+const copyGraphNodesDefinitions = (nodes) => {
+    const names = new Set();
+    const code = [];
+    const vars = {};
+    const outLinks = {};
+    
+    const createNodeObject = (node) => {
+        const nodeObj = {
+            title: node.title,
+            var: toVar(node.constructor.type, false),
+            type: node.constructor.type,
+            inputs: mapInputs(node.inputs),
+            widgets: mapWidgets(node.widgets),
+            outputs: mapOutputs(node.outputs)
+        };
+        return nodeObj;
+    };
+
+    const mapInputs = (inputs = []) => Object.fromEntries(
+        inputs.map(input => [
+            input.name,
+            { ...input, var: toVar(input.name) }
+        ])
+    );
+
+    const mapWidgets = (widgets = []) => Object.fromEntries(
+        widgets
+            .filter(widget => {
+                return (!widget.type?.startsWith('converted-') ?? true) && !widget.name.startsWith('control_before_generate') && !widget.name.startsWith('speak_and_recognation')
+            })
+            .map(widget => [
+                widget.name,
+                { ...widget, var: toVar(widget.name) }
+            ])
+    );
+
+    const mapOutputs = (outputs = []) => Object.fromEntries(
+        outputs.map(output => {
+            const outputLinks = Array.isArray(output.links) ? output.links : [];
+
+            const outputObj = {
+                ...output,
+                var: toVar(output.name),
+                links: [...outputLinks]
+            };
+            outputLinks.forEach(link => (outLinks[link] = outputObj.var));
+            return [output.name, outputObj];
+        })
+    );
+
+    console.log(nodes);
+    const nodeObjs = Object.values(nodes).map(createNodeObject);
+    console.log(nodeObjs);
+    
+    nodeObjs.forEach(node => {
+        const args = [];
+        const vars = [];
+        const out_comment = [];
+        const out = [];
+
+        Object.values(node.inputs).forEach(input => {
+            const inputDef = `LINK_${input.type}`;
+            args.push(`${input.name}`);
+            // args.push(`${input.name}=${inputDef}`);
+            vars.push(`${input.name}=${input.name}`);
+        });
+
+        Object.values(node.widgets).forEach(widget => {
+            const value = 
+                typeof widget.value === 'string' ? `r"${widget.value}"` :
+                widget.value === true ? 'True' :
+                widget.value === false ? 'False' :
+                widget.value;
+            args.push(`${widget.name}=${value}`);
+            vars.push(`${widget.name}=${widget.name}`);
+        });
+
+        Object.values(node.outputs).forEach((output, index) => {
+            out.push(`node.out(${index})`);
+            out_comment.push( `${output.var}`);
+        });
+
+        code.push(`def ${node.var}(self, ${args.join(', ')}):`);
+        if (out.length > 0) {
+            code.push(`    '''`);
+            code.push(`    return ${out_comment.join(', ')}`);
+            code.push(`    '''`);
+        }
+        code.push(`    node = self.graph.node('${node.type}', ${vars.join(', ')})`);
+        if (out.length > 0) {
+            code.push(`    return ${out.join(', ')}`);
+        }
+        code.push('');
+    });
+
+    navigator.clipboard.writeText(code.join('\n')).catch(err => console.error('Error:', err));
+};
+
+function showSubMenu(value, options, e, menu, node) {
+    const behaviorOptions = [
+        {
+            content: "Make Group Node",
+            callback: () => {
+                let graphcanvas = LGraphCanvas.active_canvas;
+                if (!graphcanvas.selected_nodes || Object.keys(graphcanvas.selected_nodes).length <= 1) {
+                    copyGraphNodes([node]);
+                } else {
+                    copyGraphNodes(graphcanvas.selected_nodes);
+                }
+            }
+        },
+        {
+            content: "Copy graph.node definitions",
+            callback: () => {
+                let graphcanvas = LGraphCanvas.active_canvas;
+                if (!graphcanvas.selected_nodes || Object.keys(graphcanvas.selected_nodes).length <= 1) {
+                    copyGraphNodesDefinitions([node]);
+                } else {
+                    copyGraphNodesDefinitions(graphcanvas.selected_nodes);
+                }
+            }
+        }
+    ];
+
+    new LiteGraph.ContextMenu(behaviorOptions, {
+        event: e,
+        callback: null,
+        parentMenu: menu,
+        node: node
+    });
+
+    return false;  // This ensures the original context menu doesn't proceed
+}
 
 app.registerExtension({
 	name: "PyExec.js.menu.GraphNode",
@@ -207,15 +342,9 @@ app.registerExtension({
 
         addMenuHandler(nodeType, function (_, options) {
             options.unshift({
-                content: "PyExec: Make Group Node",
-                callback: (value, options, e, menu, node) => {
-                    let graphcanvas = LGraphCanvas.active_canvas;
-                    if (!graphcanvas.selected_nodes || Object.keys(graphcanvas.selected_nodes).length <= 1) {
-                        copyGraphNodes([node]);
-                    } else {
-                        copyGraphNodes(graphcanvas.selected_nodes);
-                    }
-                }
+                content: "PyExec",
+                has_submenu: true,
+                callback: showSubMenu
             })
         })
 	}
