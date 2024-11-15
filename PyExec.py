@@ -113,6 +113,7 @@ class PyExec_OutputIsValue:
 
     RETURN_TYPES = (ANY_TYPE,)
     RETURN_NAMES = ('value',)
+    INPUT_IS_LIST = True
     OUTPUT_IS_LIST = (False,)
     FUNCTION = "doit"
     CATEGORY = CATEGORY
