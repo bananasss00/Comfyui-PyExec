@@ -72,7 +72,7 @@ class PyExec:
 
     RETURN_TYPES = tuple([ANY_TYPE] * ARGS_COUNT)
     RETURN_NAMES = tuple(f'r{i}' for i in range(1, ARGS_COUNT + 1))
-    INPUT_IS_LIST = True
+    INPUT_IS_LIST = False
     OUTPUT_IS_LIST = tuple([False] * ARGS_COUNT)
     FUNCTION = "doit"
     CATEGORY = CATEGORY
