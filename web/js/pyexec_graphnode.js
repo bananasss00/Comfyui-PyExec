@@ -1,5 +1,5 @@
 import { app } from "../../../scripts/app.js";
-
+  
 const addMenuHandler = (nodeType, cb)=> {
 	const getOpts = nodeType.prototype.getExtraMenuOptions;
 	nodeType.prototype.getExtraMenuOptions = function () {
@@ -190,13 +190,14 @@ const copyGraphNodes = (nodes) => {
     const varsText = Object.entries(vars)
         .map(([key, value]) => `${key} = ${value}`)
         .join('\n');
-    const codeStr = `${varsText}\n\n${code.join('\n')}`;
+    const codeStr = `# NODES_GROUP \n${varsText}\n\n${code.join('\n')}`;
 
     const newNode = app.graph.add(LiteGraph.createNode('PyExec_Output', 'PyExec_Output', {
         'pos': [...app.canvas.canvas_mouse]
     }));
-    const py = newNode.widgets.find(w => w.name === 'py');
+    const py = newNode.widgets.find(w => w.name === 'pycode');
     py.value = codeStr;
+    py.editor.setValue(codeStr);
 
     navigator.clipboard.writeText(codeStr).catch(err => console.error('Error:', err));
 };
