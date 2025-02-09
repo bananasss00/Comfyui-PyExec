@@ -34,39 +34,6 @@ class ByPassTypeTuple(tuple):
 
 IDEs_DICT = {}
 
-@PromptServer.instance.routes.post("/pyexec/check_js_complete")
-async def check_js_complete(request):
-    json_data = await request.json()
-    unique_id = json_data.get("unique_id", None)
-    result_code = json_data.get("result_code", None)
-
-    if (
-        unique_id is not None
-        and unique_id in IDEs_DICT
-        and result_code
-        and result_code is not None
-    ):
-        IDEs_DICT[unique_id].js_result = result_code
-        IDEs_DICT[unique_id].js_complete = True
-        return web.json_response({"status": "Ok"})
-
-    return web.json_response({"status": "Error"})
-
-
-async def wait_js_complete(unique_id, time_out=40):
-    for _ in range(time_out):
-        if (
-            hasattr(IDEs_DICT[unique_id], "js_complete")
-            and IDEs_DICT[unique_id].js_complete == True
-            and IDEs_DICT[unique_id].js_result is not None
-        ):
-            IDEs_DICT[unique_id].js_complete = False
-            return True
-
-        await sleep(0.1)
-
-    return False
-
 class GlobalStorage:
     pass
 
@@ -74,22 +41,15 @@ ANY_TYPE = AnyType("*")
 GLOBAL_STORAGE = GlobalStorage()
         
 class PyExec:
-    def __init__(self):
-        self.js_complete = False
-        self.js_result = None
-
     @classmethod
     def INPUT_TYPES(s):
         return {
             "optional": {},
             "required": {
-                "language": (
-                    (["python", "javascript"]),
-                    {"default": "python"},
-                ),
                 "pycode": (
-                    "PYCODE",
-                    {
+                    "STRING",
+                    {  
+                        "multiline": True,
                         "default": """# !!! Attention, do not insert unverified code !!!
 # ---- Example code ----
 # Globals inputs variables: var1, var2, var3, user variables ...
@@ -117,10 +77,10 @@ result = runCode()"""
     CATEGORY = CATEGORY
     OUTPUT_NODE = False
 
-    def doit(self, language, pycode, **kwargs):
-        return self.pyexec(language, pycode, **kwargs)
+    def doit(self, pycode, **kwargs):
+        return self.pyexec(pycode, **kwargs)
 
-    def pyexec(self, language, pycode, **kwargs):
+    def pyexec(self, pycode, **kwargs): 
         unique_id = kwargs['id']
 
         if unique_id not in IDEs_DICT:
@@ -145,37 +105,20 @@ result = runCode()"""
             my_namespace.__dict__.setdefault("result", "The result variable is not assigned")
             
             result = tuple()
-            if language == "python":
-                my_namespace.__dict__.update({
-                    'gs': GLOBAL_STORAGE,
-                    'graph': graph,
-                })
-                
-                with contextlib.redirect_stdout(output):
-                    exec(pycode, my_namespace.__dict__)
-                
-                new_dict = {key: my_namespace.__dict__[key] for key in my_namespace.__dict__ if key not in ['__builtins__', *kwargs.keys()] and not callable(my_namespace.__dict__[key])}
-                result = (*new_dict.values(),)
+            my_namespace.__dict__.update({
+                'gs': GLOBAL_STORAGE,
+                'graph': graph,
+            })
+            
+            with contextlib.redirect_stdout(output):
+                exec(pycode, my_namespace.__dict__)
+            
+            new_dict = {key: my_namespace.__dict__[key] for key in my_namespace.__dict__ if key not in ['__builtins__', *kwargs.keys()] and not callable(my_namespace.__dict__[key])}
+            result = (*new_dict.values(),)
 
-                # print(f'result: {result}')
-                captured_output = output.getvalue()
-                print(f'PyExec: {captured_output}')
-            else:
-                IDEs_DICT[unique_id].js_complete = False
-                IDEs_DICT[unique_id].js_result = None
-
-                new_dict = {key: my_namespace.__dict__[key] for key in my_namespace.__dict__ if key not in ['__builtins__', *kwargs.keys()] and not callable(my_namespace.__dict__[key])}
-                
-                PromptServer.instance.send_sync(
-                    "pyexec_js_result",
-                    {"unique_id": unique_id, "vars": json.dumps(new_dict)},
-                )
-                if not run(wait_js_complete(unique_id)):
-                    print(f"PyExec_{unique_id}: Failed to get data!")
-                else:
-                    print(f"PyExec_{unique_id}: Data received successful!")
-
-                result = (*IDEs_DICT[unique_id].js_result,)
+            # print(f'result: {result}')
+            captured_output = output.getvalue()
+            print(f'PyExec: {captured_output}')
 
             return {
                 "result": result,

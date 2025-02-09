@@ -197,7 +197,6 @@ const copyGraphNodes = (nodes) => {
     }));
     const py = newNode.widgets.find(w => w.name === 'pycode');
     py.value = codeStr;
-    py.editor.setValue(codeStr);
 
     navigator.clipboard.writeText(codeStr).catch(err => console.error('Error:', err));
 };
