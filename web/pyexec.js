@@ -33,6 +33,51 @@ app.registerExtension({
         return ret;
       };
 
+      const onDrawForeground = nodeType.prototype.onDrawForeground;
+      nodeType.prototype.onDrawForeground = function (ctx) {
+        const r = onDrawForeground?.apply?.(this, arguments);
+
+        if (this.flags?.collapsed) return r;
+
+        if (this?.outputs?.length) {
+          for (let o = 0; o < this.outputs.length; o++) {
+            const { name, type } = this.outputs[o];
+            const colorType = LGraphCanvas.link_type_colors[type.toUpperCase()];
+            const nameSize = ctx.measureText(name);
+            const typeSize = ctx.measureText(
+              `[${type === "*" ? "any" : type.toLowerCase()}]`
+            );
+
+            ctx.fillStyle = colorType === "" ? "#AAA" : colorType;
+            ctx.font = "12px Arial, sans-serif";
+            ctx.textAlign = "right";
+            ctx.fillText(
+              `[${type === "*" ? "any" : type.toLowerCase()}]`,
+              this.size[0] - nameSize.width - typeSize.width,
+              o * 20 + 19
+            );
+          }
+        }
+
+        if (this?.inputs?.length) {
+          for (let i = 0; i < this.inputs.length; i++) {
+            const { name, type } = this.inputs[i];
+            const colorType = LGraphCanvas.link_type_colors[type.toUpperCase()];
+            const nameSize = ctx.measureText(name);
+
+            ctx.fillStyle = colorType === "" ? "#AAA" : colorType;
+            ctx.font = "12px Arial, sans-serif";
+            ctx.textAlign = "left";
+            ctx.fillText(
+              `[${type === "*" ? "any" : type.toLowerCase()}]`,
+              nameSize.width + 25,
+              i * 20 + 19
+            );
+          }
+        }
+        return r;
+      };
+
       // ExtraMenuOptions
       const getExtraMenuOptions = nodeType.prototype.getExtraMenuOptions;
       nodeType.prototype.getExtraMenuOptions = function (_, options) {
