@@ -1,8 +1,9 @@
 import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
-// Константы и хелперы
+// Constants and helpers
 const NODE_TYPE = "DynamicGroupNode";
+
 const DEFAULT_PROPERTIES = {
   pycode: `out1=var1
 out2=var2
@@ -18,6 +19,7 @@ result='some result'
     { type: 'INT', name: 'MyAge', value: '30', min: '0', max: '100', step: '1' },
     { type: 'FLOAT', name: 'Weight', value: '75.5', min: '50', max: '150', step: '0.5', precision: '3' },
     { type: 'STRING', name: 'Name', value: 'John' },
+    { type: 'MSTRING', name: 'Name2', value: 'John' },
     { type: 'BOOLEAN', name: 'Active', value: 'true' },
     { type: 'COMBO', name: 'Gender', value: 'male', values: ['male', 'female'] }
   ], null, 4),
@@ -25,8 +27,46 @@ result='some result'
   widgets_values: {}
 };
 
+// Function to add a multiline widget
+function addMultilineWidget(node, name, callback2, opts) {
+  const inputEl = document.createElement("textarea");
+  inputEl.className = "comfy-multiline-input";
+  inputEl.value = opts.defaultVal;
+  inputEl.placeholder = opts.placeholder || name;
+  const widget = node.addDOMWidget(name, "customtext", inputEl, {
+    getValue() {
+      return inputEl.value;
+    },
+    setValue(v2) {
+      inputEl.value = v2;
+    }
+  });
+  widget.callback = callback2;
+  widget.inputEl = inputEl;
+  inputEl.addEventListener("input", () => {
+    widget.callback?.(widget.value);
+  });
+  inputEl.addEventListener("pointerdown", (event) => {
+    if (event.button === 1) {
+      app.canvas.processMouseDown(event);
+    }
+  });
+  inputEl.addEventListener("pointermove", (event) => {
+    if ((event.buttons & 4) === 4) {
+      app.canvas.processMouseMove(event);
+    }
+  });
+  inputEl.addEventListener("pointerup", (event) => {
+    if (event.button === 1) {
+      app.canvas.processMouseUp(event);
+    }
+  });
+  return { minWidth: 400, minHeight: 200, widget: widget };
+}
+
+// Widget factory for different types of widgets
 const WIDGET_FACTORY = {
-  INT: (node, widget, getValue, callback) => 
+  INT: (node, widget, getValue, callback) =>
     node.addWidget('number', widget.name, getValue(widget), callback, {
       min: Number(widget.min),
       max: Number(widget.max),
@@ -34,7 +74,7 @@ const WIDGET_FACTORY = {
       round: 1,
       precision: 0
     }),
-  
+
   FLOAT: (node, widget, getValue, callback) =>
     node.addWidget('number', widget.name, getValue(widget), callback, {
       min: Number(widget.min),
@@ -42,46 +82,50 @@ const WIDGET_FACTORY = {
       step: Number(widget.step) * 10,
       precision: Number(widget.precision) || 3
     }),
-  
+
   STRING: (node, widget, getValue, callback) =>
     node.addWidget('string', widget.name, getValue(widget), callback),
-  
+
+  MSTRING: (node, widget, getValue, callback) =>
+    addMultilineWidget(node, widget.name, callback, {defaultVal: getValue(widget)}),
+
   BOOLEAN: (node, widget, getValue, callback) =>
     node.addWidget('toggle', widget.name, getValue(widget), callback),
-  
+
   COMBO: (node, widget, getValue, callback) =>
     node.addWidget('combo', widget.name, getValue(widget), callback, {
       values: widget.values
     })
 };
 
+// Helper class to manage node widgets
 class NodeHelper {
   static createWidgets(node) {
     const currentLinks = node.inputs.map(input => input.link);
     console.log(currentLinks);
 
-    // Очистка предыдущих элементов
+    // Clear previous elements
     node.inputs = [];
     node.widgets = [];
     node.outputs = [];
 
-    // Создание входов
+    // Create inputs
     NodeHelper.createInputs(node);
 
-    // Восстановление значений link
+    // Restore link values
     node.inputs.forEach((input, index) => {
       if (currentLinks[index]) {
         input.link = currentLinks[index];
         console.log(`Link restored for input ${index}:`, input.link);
       }
     });
-    
-    // Создание виджетов
+
+    // Create widgets
     NodeHelper.createNodeWidgets(node);
-    
-    // Создание выходов
+
+    // Create outputs
     NodeHelper.createOutputs(node);
-    
+
     node.serialize();
   }
 
@@ -119,7 +163,7 @@ class NodeHelper {
       widgetsConfig.forEach(widget => {
         const type = widget.type.toUpperCase();
         const factory = WIDGET_FACTORY[type];
-        
+
         if (!factory) {
           console.warn(`Unknown widget type: ${type}`);
           return;
@@ -157,6 +201,7 @@ class NodeHelper {
   }
 }
 
+// Class to render node types
 class TypeRenderer {
   static drawPortTypes(node, ctx) {
     if (node.flags?.collapsed) return;
@@ -171,7 +216,7 @@ class TypeRenderer {
     node.outputs?.forEach((output, index) => {
       const type = output.type === "*" ? "any" : output.type.toLowerCase();
       const color = LGraphCanvas.link_type_colors[output.type.toUpperCase()] || "#AAA";
-      
+
       TypeRenderer.drawTypeLabel(ctx, type, color, {
         x: node.size[0] - ctx.measureText(output.name).width - 25,
         y: index * 20 + 19,
@@ -184,7 +229,7 @@ class TypeRenderer {
     node.inputs?.forEach((input, index) => {
       const type = input.type === "*" ? "any" : input.type.toLowerCase();
       const color = LGraphCanvas.link_type_colors[input.type.toUpperCase()] || "#AAA";
-      
+
       TypeRenderer.drawTypeLabel(ctx, type, color, {
         x: 25 + ctx.measureText(input.name).width,
         y: index * 20 + 19,
@@ -201,7 +246,7 @@ class TypeRenderer {
   }
 }
 
-
+// Register the extension
 app.registerExtension({
   name: "Comfy.PyExec.DynamicGroupNode",
 
