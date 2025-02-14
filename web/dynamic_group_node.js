@@ -10,7 +10,7 @@ import {
 const MAX_CHAR_VARNAME = 50;
 
 function createWidgets(node) {
-  node.inputs.splice(0, node.inputs.length);
+  node.inputs = [];
         node.properties.inputs.trim().split('\n').forEach(element => {
           node.addInput(element, "*");
         });
@@ -32,7 +32,8 @@ function createWidgets(node) {
             return defaultValue;
         }
 
-        node.widgets = node.widgets.filter(widget => widget.name === 'pycode');
+        node.widgets = [];
+        // node.widgets = node.widgets.filter(widget => widget.name === 'pycode');
         node.properties.widgets.trim().split('\n').forEach(line => {
           const parts = line.trim().split(',');
           if(!parts.length) return;
@@ -94,6 +95,7 @@ app.registerExtension({
 
         if (!node.properties.inputs) {
           node.properties = {
+            pycode: '',
             inputs: 'var1\nvar2',
             widgets: 'INT,My Age,30,0,100,1\n' +
                       'FLOAT,Weight,75.5,50,150,0.5,3\n' +
@@ -108,8 +110,8 @@ app.registerExtension({
 
         // this.setSize([currentWidth, this.size[1]]);
         // Reset py widget y location
-        node.widgets[0].y=0
-        node.setSize([530, node.size[1]]);
+        // node.widgets[0].y=0
+        // node.setSize([530, node.size[1]]);
 
         node.onPropertyChanged = function (name, value)
         {

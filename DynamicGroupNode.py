@@ -43,15 +43,7 @@ class DynamicGroupNode:
     def INPUT_TYPES(s):
         return {
             "optional": {},
-            "required": {
-                "pycode": (
-                    "STRING",
-                    {  
-                        "multiline": True,
-                        "default": """result = 1"""
-                    },
-                ),
-            },
+            "required": {},
             "hidden": {
 				"prompt": "PROMPT",
 				"id": "UNIQUE_ID",
@@ -67,10 +59,7 @@ class DynamicGroupNode:
     CATEGORY = CATEGORY
     OUTPUT_NODE = False
 
-    def doit(self, pycode, **kwargs):
-        return self.pyexec(pycode, **kwargs)
-
-    def pyexec(self, pycode, **kwargs): 
+    def doit(self, **kwargs):
         unique_id = kwargs['id']
 
         if unique_id not in IDEs_DICT:
@@ -81,14 +70,19 @@ class DynamicGroupNode:
         try:
             output = io.StringIO()
 
+            pycode = ''
+
             outputs = {}
             for node in kwargs['workflow']['workflow']['nodes']:
                 if node['id'] == int(unique_id):
+                    pycode =node['properties']['pycode']
+
                     outputs_valid = [ouput for ouput in node.get('outputs', []) if ouput.get('name','') != '' and ouput.get('type','') != '']
                     outputs = {ouput['name']: None for ouput in outputs_valid}
                     self.RETURN_TYPES = ByPassTypeTuple(out["type"] for out in outputs_valid)
                     self.RETURN_NAMES = tuple(name for name in outputs.keys())
             widgets = {}
+            
             for k, v in kwargs['prompt'].items():
                 if k == unique_id:
                     widgets = {name: value for name, value in v['inputs'].items() if name != 'pycode'}
@@ -105,6 +99,7 @@ class DynamicGroupNode:
                 'graph': graph,
             })
             
+            print(pycode)
             with contextlib.redirect_stdout(output):
                 exec(pycode, my_namespace.__dict__)
             
@@ -126,7 +121,6 @@ class DynamicGroupNode:
             err = f"Exception: {e}\n{stacktrace}"
             print(err)
             return tuple([[err]] * len(self.RETURN_TYPES))
-
 
 NODE_CLASS_MAPPINGS = {
     "DynamicGroupNode": DynamicGroupNode, 
