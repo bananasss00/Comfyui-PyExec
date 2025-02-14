@@ -53,7 +53,7 @@ app.registerExtension({
             ctx.textAlign = "right";
             ctx.fillText(
               `[${type === "*" ? "any" : type.toLowerCase()}]`,
-              this.size[0] - nameSize.width - typeSize.width,
+              this.size[0] - nameSize.width - 25,
               o * 20 + 19
             );
           }

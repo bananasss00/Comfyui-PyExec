@@ -104,6 +104,14 @@ class NodeHelper {
     const currentLinks = node.inputs.map(input => input.link);
     console.log(currentLinks);
 
+    // remove multiline widgets elements
+    node.widgets?.forEach((widget, index) => {
+      if (widget.type === 'customtext') {
+        widget.element.remove();
+        console.log(`customtext ${widget.name} removed`);
+      }
+    });
+
     // Clear previous elements
     node.inputs = [];
     node.widgets = [];
