@@ -122,8 +122,11 @@ class CustomizeDialog extends ComfyDialog {
   }
 
   createTabs() {
-    const btnIO = $el("button.tab-button", { "data-tab": "inputs-outputs" }, "Inputs/Outputs");
-    btnIO.dataset.tab = "inputs-outputs";
+    const btnIO = $el("button.tab-button", { "data-tab": "inputs" }, "Inputs");
+    btnIO.dataset.tab = "inputs";
+
+    const btnO = $el("button.tab-button", { "data-tab": "outputs" }, "Outputs");
+    btnO.dataset.tab = "outputs";
 
     const btnW = $el("button.tab-button", { "data-tab": "widgets" }, "Widgets");
     btnW.dataset.tab = "widgets";
@@ -134,19 +137,32 @@ class CustomizeDialog extends ComfyDialog {
     const tabs = [
       $el("div.tabs", [
         btnIO,
+        btnO,
         btnW,
         btnPy
       ])
     ];
-    const tabIO = $el("div.tab-content", { "data-tab": "inputs-outputs" }, [
+
+
+    const tabIO = $el("div.tab-content", { "data-tab": "inputs" }, [
       $el("textarea", {
-        id: "inputs-outputs-textarea",
+        id: "inputs-textarea",
         rows: "10",
         cols: "50",
-        placeholder: "Inputs (one per line)\nvar1: STRING\nvar2: INT\n\nOutputs (one per line)\nout1: STRING\nout2: INT"
+        placeholder: "Inputs (one per line)\nvar1: STRING\nvar2: INT"
       })
     ]);
-    tabIO.dataset.tab = "inputs-outputs";
+    tabIO.dataset.tab = "inputs";
+
+    const tabO = $el("div.tab-content", { "data-tab": "outputs" }, [
+      $el("textarea", {
+        id: "outputs-textarea",
+        rows: "10",
+        cols: "50",
+        placeholder: "Outputs (one per line)\nout1: STRING\nout2: INT"
+      })
+    ]);
+    tabO.dataset.tab = "outputs";
 
     const tabW = $el("div.tab-content", { "data-tab": "widgets" }, [
       // Inline-редактирование виджетов
@@ -160,14 +176,15 @@ class CustomizeDialog extends ComfyDialog {
         rows: "10",
         cols: "50",
         placeholder: "Enter Python code here..."
-      })]);
+      })
+    ]);
     tabPy.dataset.tab = "pycode";
 
     const tabContents = [
       tabIO,
+      tabO,
       tabW,
       tabPy
-      
     ];
 
     return [...tabs, ...tabContents];
@@ -379,8 +396,11 @@ class CustomizeDialog extends ComfyDialog {
   }
 
   setTextareasContent() {
-    const inputsOutputsTextarea = this.element.querySelector("#inputs-outputs-textarea");
-    inputsOutputsTextarea.value = `${this.node.properties.inputs}\n\n${this.node.properties.outputs}`;
+    const inputsTextarea = this.element.querySelector("#inputs-textarea");
+    inputsTextarea.value = this.node.properties.inputs;
+
+    const outputsTextarea = this.element.querySelector("#outputs-textarea");
+    outputsTextarea.value = this.node.properties.outputs;
 
     const pycodeTextarea = this.element.querySelector("#pycode-textarea");
     pycodeTextarea.value = this.node.properties.pycode;
@@ -621,16 +641,18 @@ class CustomizeDialog extends ComfyDialog {
   }
 
   save() {
-    // Сохраняем Inputs/Outputs
-    const inputsOutputsText = this.element.querySelector("#inputs-outputs-textarea").value;
-    const [inputs, outputs] = inputsOutputsText.split(/\n\s*\n/);
-    this.node.properties.inputs = inputs?.trim() || "";
-    this.node.properties.outputs = outputs?.trim() || "";
-
+    // Сохраняем Inputs
+    const inputsText = this.element.querySelector("#inputs-textarea").value;
+    this.node.properties.inputs = inputsText.trim();
+  
+    // Сохраняем Outputs
+    const outputsText = this.element.querySelector("#outputs-textarea").value;
+    this.node.properties.outputs = outputsText.trim();
+  
     // PyCode оставляем без изменений
     const pycodeText = this.element.querySelector("#pycode-textarea").value;
     this.node.properties.pycode = pycodeText;
-
+  
     NodeHelper.createWidgets(this.node);
     this.close();
   }
