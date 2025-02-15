@@ -3,98 +3,45 @@ import { addMultilineWidget } from "./addMultilineWidget.js";
 // TODO: Convert to input, handle reload workflow
 
 // Widget factory for different types of widgets
-export const WIDGET_FACTORY = {
-  INT: (nodeData, node, widget, getValue, callback) => {
-    const config = ['INT', {default: getValue(widget), min: widget.min, max: widget.max, step: widget.step}];
-    const w = app.widgets['INT'](node, widget.name, config, app);
-    w.widget.callback = callback;
-    nodeData.input.required[widget.name] = config;
+const createBaseWidget = (type, nodeData, node, widget, getValue, callback, extraConfig = {}) => {
+  const config = [type, { 
+      default: getValue(widget), 
+      ...widget, 
+      ...extraConfig 
+  }];
+  
+  const w = app.widgets[type](node, widget.name, config, app);
+  w.widget.callback = callback;
+  nodeData.input.required[widget.name] = config;
+  return w;
+};
 
-    // const w = node.addWidget('number', widget.name, getValue(widget), callback, {
-    //   min: Number(widget.min),
-    //   max: Number(widget.max),
-    //   step: Number(widget.step) * 10,
-    //   round: 1,
-    //   precision: 0
-    // });
-    // Object.assign(
-    //   w,
-    //   app.widgets['INT'](node, widget.name, ['INT', {min: widget.min, max: widget.max, step: widget.step}], app) || {}
-    // )
-  },
-
-  FLOAT: (nodeData, node, widget, getValue, callback) => {
-    const config = ['FLOAT', {default: getValue(widget), min: widget.min, max: widget.max, step: widget.step}];
-    const w = app.widgets['FLOAT'](node, widget.name, config, app);
-    w.widget.callback = callback;
-    nodeData.input.required[widget.name] = config;
-
-    // const w = node.addWidget('number', widget.name, getValue(widget), callback, {
-    //   min: Number(widget.min),
-    //   max: Number(widget.max),
-    //   step: Number(widget.step) * 10,
-    //   precision: Number(widget.precision) || 3
-    // });
-    // Object.assign(
-    //   w,
-    //   app.widgets['FLOAT'](node, widget.name, ['FLOAT', {min: widget.min, max: widget.max, step: widget.step}], app) || {}
-    // )
-  },
-
-  STRING: (nodeData, node, widget, getValue, callback) => {
-    const config = ['STRING', {default: getValue(widget)}];
-    const w = app.widgets['STRING'](node, widget.name, config, app);
-    w.widget.callback = callback;
-    nodeData.input.required[widget.name] = config;
-
-    // const w = node.addWidget('string', widget.name, getValue(widget), callback);
-    // Object.assign(
-    //   w,
-    //   app.widgets['STRING'](node, widget.name, ['STRING', {}], app) || {}
-    // )
-  },
-
-  MSTRING: (nodeData, node, widget, getValue, callback) => {
-    const config = ['STRING', {default: getValue(widget), multiline: true}];
-    const w = app.widgets['STRING'](node, widget.name, config, app);
-    w.widget.callback = callback;
-    nodeData.input.required[widget.name] = config;
-
-    // const w = addMultilineWidget(node, widget.name, callback, {defaultVal: getValue(widget)});
-    // Object.assign(
-    //   w,
-    //   app.widgets['MSTRING'](node, widget.name, ['STRING', {multiline: true}], app) || {}
-    // )
-  },
-
-  BOOLEAN: (nodeData, node, widget, getValue, callback) => {
-    const config = ['BOOLEAN', {default: getValue(widget)}];
-    const w = app.widgets['BOOLEAN'](node, widget.name, config, app);
-    w.widget.callback = callback;
-    nodeData.input.required[widget.name] = config;
-
-    // const w = node.addWidget('toggle', widget.name, getValue(widget), callback);
-    // Object.assign(
-    //   w,
-    //   app.widgets['BOOLEAN'](node, widget.name, ['BOOLEAN', {}], app) || {}
-    // )
-  },
-
+const WIDGET_FACTORY = {
+  INT: (...args) => createBaseWidget('INT', ...args, { precision: 0 }),
+  FLOAT: (...args) => createBaseWidget('FLOAT', ...args),
+  STRING: (...args) => createBaseWidget('STRING', ...args),
+  MSTRING: (...args) => createBaseWidget('STRING', ...args, { multiline: true }),
+  BOOLEAN: (...args) => createBaseWidget('BOOLEAN', ...args),
   COMBO: (nodeData, node, widget, getValue, callback) => {
-    const config = [widget.values, {default: getValue(widget)}];
-    const w = app.widgets.COMBO(node, widget.name, config, app);
-    w.widget.callback = callback;
-    nodeData.input.required[widget.name] = config;
-
-    // const w = node.addWidget('combo', widget.name, getValue(widget), callback, {
-    //   values: widget.values
-    // });
-    // Object.assign(
-    //   w,
-    //   app.widgets.COMBO(node, widget.name, [widget.values, {}], app) || {}
-    // )
+      const config = [widget.values, { default: getValue(widget) }];
+      const w = app.widgets.COMBO(node, widget.name, config, app);
+      w.widget.callback = callback;
+      nodeData.input.required[widget.name] = config;
+      return w;
   }
 };
+
+const logger = {
+  debug: (...args) => console.debug('[NodeHelper]', ...args),
+  warn: (...args) => console.warn('[NodeHelper]', ...args),
+  error: (...args) => console.error('[NodeHelper]', ...args)
+};
+
+const parseConnections = (connectionString, defaultType = '*') => 
+  connectionString.trim().split('\n').map(line => {
+      const [name, type] = line.split(':').map(s => s.trim());
+      return { name: name || line.trim(), type: (type || defaultType).toUpperCase() };
+  });
 
 // Helper class to manage node widgets
 export class NodeHelper {
@@ -138,61 +85,70 @@ export class NodeHelper {
   }
 
   static createInputs(node) {
-    const inputs = node.properties.inputs.trim().split('\n');
-    inputs.forEach(input => {
-      let name, type;
-      if (input.includes(':')) {
-        [name, type] = input.split(':').map(str => str.trim());
-      } else {
-        name = input.trim();
-        type = '*';
-      }
-      node.addInput(name, type.toUpperCase());
-    });
+    parseConnections(node.properties.inputs).forEach(({name, type}) => 
+        node.addInput(name, type));
   }
 
   static createOutputs(node) {
-    const outputs = node.properties.outputs.trim().split('\n');
-    outputs.forEach(output => {
-      let name, type;
-      if (output.includes(':')) {
-        [name, type] = output.split(':').map(str => str.trim());
-      } else {
-        name = output.trim();
-        type = '*';
-      }
-      node.addOutput(name, type.toUpperCase());
-    });
+    parseConnections(node.properties.outputs).forEach(({name, type}) => 
+        node.addOutput(name, type));
+  }
+
+  static resetNodeElements(node) {
+      // Безопасное удаление кастомных элементов
+      node.widgets?.forEach(widget => {
+          if (widget.type === 'customtext' && widget.element?.remove) {
+              widget.element.remove();
+          }
+      });
+      
+      node.inputs = [];
+      node.widgets = [];
+      node.outputs = [];
+  }
+
+  static restoreLinks(node, currentLinks) {
+      node.inputs.forEach((input, index) => {
+          if (currentLinks[index]) {
+              input.link = currentLinks[index];
+              app.graph.setDirtyCanvas(true);
+          }
+      });
   }
 
   static createNodeWidgets(nodeData, node) {
-    try {
       nodeData.input.required = {};
-      const widgetsConfig = JSON.parse(node.properties.widgets);
-      widgetsConfig.forEach(widget => {
-        const type = widget.type.toUpperCase();
-        const factory = WIDGET_FACTORY[type];
-
-        if (!factory) {
-          console.warn(`Unknown widget type: ${type}`);
-          return;
-        }
-
-        const callback = value => NodeHelper.handleWidgetChange(node, widget.name, value);
-        const getValue = w => NodeHelper.getWidgetValue(node, w);
-
-        factory(nodeData, node, widget, getValue, callback);
-      });
-    } catch (error) {
-      console.error("Error parsing widgets config:", error);
-    }
+      
+      try {
+          const widgetsConfig = JSON.parse(node.properties.widgets);
+          widgetsConfig.forEach(widget => {
+              const type = widget.type?.toUpperCase();
+              
+              if (!type || !WIDGET_FACTORY[type]) {
+                  logger.warn(`Skipping invalid widget:`, widget);
+                  return;
+              }
+              
+              const callback = value => this.handleWidgetChange(node, widget.name, value);
+              const getValue = w => this.getWidgetValue(node, w);
+              
+              WIDGET_FACTORY[type](nodeData, node, widget, getValue, callback);
+          });
+      } catch (error) {
+          logger.error('Widgets config parsing error:', error);
+          throw new Error('Invalid widgets configuration');
+      }
   }
 
   static handleWidgetChange(node, name, value) {
-    node.properties.widgets_values = node.properties.widgets_values || {};
-    node.properties.widgets_values[name] = value;
-    node.serialize();
-    console.log(`Widget ${name} changed to ${value}`);
+      node.properties.widgets_values = node.properties.widgets_values || {};
+      
+      if (node.properties.widgets_values[name] !== value) {
+          node.properties.widgets_values[name] = value;
+          node.serialize();
+          app.graph.setDirtyCanvas(true);
+          logger.debug(`Widget updated: ${name} = ${value}`);
+      }
   }
 
   static getWidgetValue(node, widget) {
