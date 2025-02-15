@@ -29,7 +29,7 @@ result='some result'
   widgets_values: {}
 };
 
-function addCustomizeIcon(nodeType) {
+function addCustomizeIcon(nodeType, nodeData) {
   const options = {
     icon: '⚙️',
     size: 14,
@@ -37,7 +37,7 @@ function addCustomizeIcon(nodeType) {
     offsetY: 14 - 34,
     onClick: (node) => {
       const dlg = CustomizeDialog.getInstance();
-      dlg.show(node);
+      dlg.show(nodeData, node);
     }
   };
 
@@ -86,12 +86,12 @@ app.registerExtension({
 
   async beforeRegisterNodeDef(nodeType, nodeData, app) {
     if (nodeData.name === NODE_TYPE) {
-      this.extendNodePrototype(nodeType);
-      addCustomizeIcon(nodeType);
+      this.extendNodePrototype(nodeType, nodeData);
+      addCustomizeIcon(nodeType, nodeData);
     }
   },
 
-  extendNodePrototype(nodeType) {
+  extendNodePrototype(nodeType, nodeData) {
     const originalOnCreated = nodeType.prototype.onNodeCreated;
     const originalDraw = nodeType.prototype.onDrawForeground;
 
@@ -103,12 +103,12 @@ app.registerExtension({
       const node = this;
       if (!node.properties.inputs) {
         node.properties = structuredClone(DEFAULT_PROPERTIES);
-        NodeHelper.createWidgets(node);
+        NodeHelper.createWidgets(nodeData, node);
       }
 
       node.onPropertyChanged = (name, value) => {
         if (['inputs', 'widgets', 'outputs'].includes(name)) {
-          NodeHelper.createWidgets(node);
+          NodeHelper.createWidgets(nodeData, node);
           console.log("Property changed", name, value);
         }
       };
