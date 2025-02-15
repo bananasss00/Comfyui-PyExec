@@ -102,6 +102,8 @@ export class NodeHelper {
     const currentLinks = node.inputs.map(input => input.link);
     console.log(currentLinks);
 
+    // TODO: rawLink, lazy inputs???
+
     // remove multiline widgets elements
     node.widgets?.forEach((widget, index) => {
       if (widget.type === 'customtext') {

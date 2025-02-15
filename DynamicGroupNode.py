@@ -39,10 +39,12 @@ ANY_TYPE = AnyType("*")
 GLOBAL_STORAGE = GlobalStorage()
         
 class DynamicGroupNode:
+    OPTIONALS = {}
+
     @classmethod
     def INPUT_TYPES(s):
         return {
-            "optional": {},
+            "optional": DynamicGroupNode.OPTIONALS, 
             "required": {},
             "hidden": {
 				"prompt": "PROMPT",
@@ -86,7 +88,10 @@ class DynamicGroupNode:
             for k, v in kwargs['prompt'].items():
                 if k == unique_id:
                     widgets = {name: value for name, value in v['inputs'].items() if name != 'pycode'}
-                    
+
+            # TODO: rawLink, lazy inputs support
+            # DynamicGroupNode.OPTIONALS = {'dbg': ('IMAGE', {'rawLink': True})}
+
             my_namespace = types.SimpleNamespace()     
             my_namespace.__dict__.update(outputs)            
             my_namespace.__dict__.update(widgets)
