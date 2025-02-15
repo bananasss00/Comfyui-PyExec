@@ -112,10 +112,11 @@ class CustomizeDialog extends ComfyDialog {
 
   constructor() {
     super();
-    this.element = $el("div.comfy-modal.custom-dialog", { parent: document.body }, [
+    this.element = $el("div.comfy-modal.custom-dialog", { parent: document.body,
+      style: {'display': 'flex', 'flex-direction': 'column'}
+     }, [
       $el("div.comfy-modal-content", [
         ...this.createTabs(),
-        // ...this.createButtons()
       ])
     ]);
     this.node = null;
@@ -124,16 +125,16 @@ class CustomizeDialog extends ComfyDialog {
   }
 
   createTabs() {
-    const btnIO = $el("button.tab-button", { "data-tab": "inputs" }, "Inputs");
+    const btnIO = $el("button.tab-button", { }, "Inputs");
     btnIO.dataset.tab = "inputs";
 
-    const btnO = $el("button.tab-button", { "data-tab": "outputs" }, "Outputs");
+    const btnO = $el("button.tab-button", { }, "Outputs");
     btnO.dataset.tab = "outputs";
 
-    const btnW = $el("button.tab-button", { "data-tab": "widgets" }, "Widgets");
+    const btnW = $el("button.tab-button", { }, "Widgets");
     btnW.dataset.tab = "widgets";
 
-    const btnPy = $el("button.tab-button", { "data-tab": "pycode" }, "PyCode");
+    const btnPy = $el("button.tab-button", { }, "PyCode");
     btnPy.dataset.tab = "pycode";
 
     const tabs = [
@@ -146,27 +147,27 @@ class CustomizeDialog extends ComfyDialog {
     ];
 
 
-    const tabIO = $el("div.tab-content", { "data-tab": "inputs" }, [
+    const tabIO = $el("div.tab-content", { }, [
       $el("textarea", {
         id: "inputs-textarea",
-        rows: "10",
-        cols: "50",
+        // rows: "10",
+        // cols: "50",
         placeholder: "Inputs (one per line)\nvar1: STRING\nvar2: INT"
       })
     ]);
     tabIO.dataset.tab = "inputs";
 
-    const tabO = $el("div.tab-content", { "data-tab": "outputs" }, [
+    const tabO = $el("div.tab-content", { }, [
       $el("textarea", {
         id: "outputs-textarea",
-        rows: "10",
-        cols: "50",
+        // rows: "10",
+        // cols: "50",
         placeholder: "Outputs (one per line)\nout1: STRING\nout2: INT"
       })
     ]);
     tabO.dataset.tab = "outputs";
 
-    const tabW = $el("div.tab-content", { "data-tab": "widgets" }, [
+    const tabW = $el("div.tab-content", { }, [
       // Inline-редактирование виджетов
       $el("div", { id: "widget-editor" })
     ]);
@@ -176,7 +177,7 @@ class CustomizeDialog extends ComfyDialog {
       $el("textarea", {
         id: "pycode-textarea",
         placeholder: "Enter Python code here...",
-        style: {width: '100%', height: '100%', resize: 'none'}, // Убраны rows/cols, добавлены стили
+        // style: {width: '100%', height: '100%', resize: 'none'}, // Убраны rows/cols, добавлены стили
       })
     ]);
     tabPy.dataset.tab = "pycode";
@@ -186,7 +187,10 @@ class CustomizeDialog extends ComfyDialog {
       tabO,
       tabW,
       tabPy
-    ];
+    ].map(tab => {
+      tab.style.flex = "1 1 auto"; // Добавляем для гибкого растягивания
+      return tab;
+    });
 
     return [...tabs, ...tabContents];
   }
@@ -383,6 +387,34 @@ class CustomizeDialog extends ComfyDialog {
         border: 1px solid var(--border-color);
         padding: 10px;
         box-sizing: border-box;
+      }
+
+      .custom-dialog .comfy-modal-content {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .custom-dialog .tabs {
+        flex-shrink: 0; 
+        background: var(--bg-secondary);
+        z-index: 2;
+        position: relative;
+      }
+
+      .custom-dialog .tab-content {
+        flex-grow: 1;
+        overflow: auto;
+        padding: 15px;
+      }
+
+      /* Добавляем разделитель между вкладками и контентом */
+      .custom-dialog .tabs::after {
+        content: "";
+        display: block;
+        height: 1px;
+        background: var(--border-color);
+        margin-top: -1px;
       }
     `;
 
