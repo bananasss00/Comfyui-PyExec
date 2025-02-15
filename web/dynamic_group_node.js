@@ -937,6 +937,7 @@ app.registerExtension({
 
       TypeRenderer.drawPortTypes(this, ctx);
 
+      if (this.flags?.collapsed) return ret;
       const x = this.size[0] - iconSize - iconMargin;
       const y = iconSize - 34;
       ctx.save();
@@ -952,6 +953,8 @@ app.registerExtension({
     const origMouseDown = nodeType.prototype.onMouseDown;
     nodeType.prototype.onMouseDown = function (e, localPos) {
       const ret = origMouseDown ? origMouseDown.apply(this, arguments) : undefined;
+      if (this.flags?.collapsed) return ret;
+
       const x = this.size[0] - iconSize - iconMargin;
       const y = iconSize - 34;
       if (
