@@ -119,6 +119,8 @@ class CustomizeDialog extends ComfyDialog {
       ])
     ]);
     this.node = null;
+    this.originalProperties = {}; // Новое свойство
+    this.saved = false; // Флаг сохранения
   }
 
   createTabs() {
@@ -173,9 +175,8 @@ class CustomizeDialog extends ComfyDialog {
     const tabPy = $el("div.tab-content", { "data-tab": "pycode" }, [
       $el("textarea", {
         id: "pycode-textarea",
-        rows: "10",
-        cols: "50",
-        placeholder: "Enter Python code here..."
+        placeholder: "Enter Python code here...",
+        style: {width: '100%', height: '100%', resize: 'none'}, // Убраны rows/cols, добавлены стили
       })
     ]);
     tabPy.dataset.tab = "pycode";
@@ -366,6 +367,23 @@ class CustomizeDialog extends ComfyDialog {
         from { opacity: 0; } 
         to { opacity: 1; } 
       }
+
+      // #pycode-textarea {
+      //   min-height: calc(80vh - 200px); // Настраиваем под размер окна
+      //   background: var(--bg-primary);
+      //   color: var(--text-primary);
+      //   border: 1px solid var(--border-color);
+      //   padding: 10px;
+      // }
+      .custom-dialog textarea {
+        min-height: calc(80vh - 200px);
+        width: 100%;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        border: 1px solid var(--border-color);
+        padding: 10px;
+        box-sizing: border-box;
+      }
     `;
 
     document.head.appendChild(style);
@@ -373,6 +391,13 @@ class CustomizeDialog extends ComfyDialog {
 
   show(node) {
     this.node = node;
+    this.originalProperties = {
+      widgets: node.properties.widgets,
+      inputs: node.properties.inputs,
+      outputs: node.properties.outputs,
+      pycode: node.properties.pycode
+    };
+
     if (!this.is_layout_created) {
       this.setLayout();
       this.is_layout_created = true;
@@ -515,26 +540,26 @@ class CustomizeDialog extends ComfyDialog {
     const container = this.element.querySelector("#widget-editor");
     const existingForm = container.querySelector(".widget-form-inline");
     if (existingForm) existingForm.remove();
-
+  
     const isEdit = !!widgetToEdit;
     const form = document.createElement("div");
     form.className = "widget-form-inline";
     form.style.cssText = `
-    position: relative;
-    z-index: 1;
-    backdrop-filter: blur(2px);
-  `;
+      position: relative;
+      z-index: 1;
+      backdrop-filter: blur(2px);
+    `;
     container.appendChild(form);
-
+  
     // Поля формы
     const typeField = this.createSelect("Type", ["INT", "FLOAT", "STRING", "MSTRING", "BOOLEAN", "COMBO"], widgetToEdit ? widgetToEdit.type : "");
     const nameField = this.createInput("Name", "text", widgetToEdit ? widgetToEdit.name : "");
     const valueField = this.createInput("Value", "text", widgetToEdit ? widgetToEdit.value : "");
-    const minField = this.createInput("Min", "number", widgetToEdit ? widgetToEdit.min : "");
-    const maxField = this.createInput("Max", "number", widgetToEdit ? widgetToEdit.max : "");
-    const stepField = this.createInput("Step", "number", widgetToEdit ? widgetToEdit.step : "");
+    const minField = this.createInput("Min", "number", widgetToEdit ? widgetToEdit.min : "1");
+    const maxField = this.createInput("Max", "number", widgetToEdit ? widgetToEdit.max : "10000");
+    const stepField = this.createInput("Step", "number", widgetToEdit ? widgetToEdit.step : "1");
     const comboField = this.createInput("Combo Values (comma separated)", "text", widgetToEdit && widgetToEdit.values ? widgetToEdit.values.join(",") : "");
-
+  
     const formFields = document.createElement("div");
     [typeField, nameField, valueField, minField, maxField, stepField, comboField].forEach(fieldObj => {
       const fieldContainer = document.createElement("div");
@@ -546,7 +571,7 @@ class CustomizeDialog extends ComfyDialog {
       formFields.appendChild(fieldContainer);
     });
     form.appendChild(formFields);
-
+  
     // Управление видимостью полей в зависимости от типа
     function updateFieldVisibility(selectedType) {
       if (selectedType === "INT" || selectedType === "FLOAT") {
@@ -568,7 +593,7 @@ class CustomizeDialog extends ComfyDialog {
     typeField.input.addEventListener("change", () => {
       updateFieldVisibility(typeField.input.value);
     });
-
+  
     // Кнопки Save и Cancel
     const btnContainer = document.createElement("div");
     btnContainer.style.marginTop = "10px";
@@ -612,7 +637,7 @@ class CustomizeDialog extends ComfyDialog {
     btnContainer.appendChild(saveBtn);
     btnContainer.appendChild(cancelBtn);
     form.appendChild(btnContainer);
-
+  
     container.appendChild(form);
   }
 
@@ -636,7 +661,7 @@ class CustomizeDialog extends ComfyDialog {
     input.className = "modern-input";
     input.type = type;
     input.value = value;
-    
+  
     return { label, input };
   }
 
@@ -654,10 +679,20 @@ class CustomizeDialog extends ComfyDialog {
     this.node.properties.pycode = pycodeText;
   
     NodeHelper.createWidgets(this.node);
+    this.saved = true;
     this.close();
   }
 
   close() {
+    if (!this.saved) {
+      // Восстанавливаем исходные данные
+      this.node.properties.widgets = this.originalProperties.widgets;
+      this.node.properties.inputs = this.originalProperties.inputs;
+      this.node.properties.outputs = this.originalProperties.outputs;
+      this.node.properties.pycode = this.originalProperties.pycode;
+    }
+    this.saved = false; // Сброс флага
+
     super.close();
   }
 }
@@ -731,11 +766,10 @@ class NodeHelper {
   }
 
   static createNodeWidgets(node) {
-    node.addWidget('button', 'Customize', 'customize', () => {
-      //NodeHelper.showCustomizeDialog(node);
-      const dlg = CustomizeDialog.getInstance();
-      dlg.show(node);
-    });
+    // node.addWidget('button', 'Customize', 'customize', () => {
+    //   const dlg = CustomizeDialog.getInstance();
+    //   dlg.show(node);
+    // });
 
     try {
       const widgetsConfig = JSON.parse(node.properties.widgets);
@@ -779,63 +813,6 @@ class NodeHelper {
     }
   }
 
-  static showCustomizeDialog(node) {
-    const dialog = document.createElement('div');
-    dialog.className = 'customize-dialog';
-    dialog.innerHTML = `
-      <div class="tabs">
-        <button class="tab-button" data-tab="inputs-outputs">Inputs/Outputs</button>
-        <button class="tab-button" data-tab="widgets">Widgets</button>
-        <button class="tab-button" data-tab="pycode">PyCode</button>
-      </div>
-      <div class="tab-content" data-tab="inputs-outputs">
-        <textarea id="inputs-outputs-textarea" rows="10" cols="50">${node.properties.inputs}\n\n${node.properties.outputs}</textarea>
-      </div>
-      <div class="tab-content" data-tab="widgets" style="display:none;">
-        <textarea id="widgets-textarea" rows="10" cols="50">${node.properties.widgets}</textarea>
-      </div>
-      <div class="tab-content" data-tab="pycode" style="display:none;">
-        <textarea id="pycode-textarea" rows="10" cols="50">${node.properties.pycode}</textarea>
-      </div>
-      <button id="save-button">Save</button>
-      <button id="cancel-button">Cancel</button>
-    `;
-
-    document.body.appendChild(dialog);
-
-    const tabButtons = dialog.querySelectorAll('.tab-button');
-    const tabContents = dialog.querySelectorAll('.tab-content');
-
-    tabButtons.forEach(button => {
-      button.addEventListener('click', () => {
-        const tab = button.getAttribute('data-tab');
-        tabContents.forEach(content => {
-          content.style.display = content.getAttribute('data-tab') === tab ? 'block' : 'none';
-        });
-      });
-    });
-
-    const saveButton = dialog.querySelector('#save-button');
-    saveButton.addEventListener('click', () => {
-      const inputsOutputsText = dialog.querySelector('#inputs-outputs-textarea').value;
-      const [inputs, outputs] = inputsOutputsText.split('\n\n').map(part => part.trim());
-      node.properties.inputs = inputs;
-      node.properties.outputs = outputs;
-
-      const widgetsText = dialog.querySelector('#widgets-textarea').value;
-      node.properties.widgets = widgetsText;
-
-      const pycodeText = dialog.querySelector('#pycode-textarea').value;
-      node.properties.pycode = pycodeText;
-        NodeHelper.createWidgets(node);
-      dialog.remove();
-    });
-
-    const cancelButton = dialog.querySelector('#cancel-button');
-    cancelButton.addEventListener('click', () => {
-      dialog.remove();
-    });
-      }
     }
 
 // Class to render node types
@@ -918,6 +895,9 @@ app.registerExtension({
       return ret;
     };
 
+
+    const iconSize = 14;
+    const iconMargin = 4;
     nodeType.prototype.onDrawForeground = function(ctx) {
       const ret = originalDraw
           ? originalDraw.apply(this, arguments)
@@ -925,6 +905,33 @@ app.registerExtension({
 
       TypeRenderer.drawPortTypes(this, ctx);
 
+      const x = this.size[0] - iconSize - iconMargin;
+      const y = iconSize - 34;
+      ctx.save();
+      ctx.font = `${iconSize}px sans-serif`;
+      ctx.textBaseline = 'top';
+      ctx.fillText('⚙️', x, y);
+      ctx.restore();
+
+      return ret;
+    };
+
+    // Переопределяем обработчик клика для определения нажатия по кнопке
+    const origMouseDown = nodeType.prototype.onMouseDown;
+    nodeType.prototype.onMouseDown = function (e, localPos) {
+      const ret = origMouseDown ? origMouseDown.apply(this, arguments) : undefined;
+      const x = this.size[0] - iconSize - iconMargin;
+      const y = iconSize - 34;
+      if (
+        localPos[0] >= x &&
+        localPos[0] <= x + iconSize &&
+        localPos[1] >= y &&
+        localPos[1] <= y + iconSize
+      ) {
+        const dlg = CustomizeDialog.getInstance();
+        dlg.show(this);
+        return true;
+      }
       return ret;
     };
   }
