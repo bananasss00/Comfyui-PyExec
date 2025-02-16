@@ -16,6 +16,8 @@ active=Active
 gender=Gender
 result='some result'
 `,
+  widgets_as_inputs: [],
+  widgets_values: {},
   inputs: 'var1: STRING\nvar2: INT',
   widgets: JSON.stringify([
     { type: 'INT', name: 'MyAge', value: '30', min: '0', max: '100', step: '1' },
@@ -26,7 +28,6 @@ result='some result'
     { type: 'COMBO', name: 'Gender', value: 'male', values: ['male', 'female'] }
   ], null, 4),
   outputs: 'out1: STRING\nout2: INT\nmy_age: INT\nweight: FLOAT\nname: STRING\nactive: BOOLEAN\ngender: STRING',
-  widgets_values: {}
 };
 
 function addCustomizeIcon(nodeType, nodeData) {
@@ -94,6 +95,32 @@ app.registerExtension({
   extendNodePrototype(nodeType, nodeData) {
     const originalOnCreated = nodeType.prototype.onNodeCreated;
     const originalDraw = nodeType.prototype.onDrawForeground;
+    const originalConnectionsChange = nodeType.prototype.onConnectionsChange
+
+    // handle converted widgets to inputs
+    nodeType.prototype.onConnectionsChange = async function (type, index, connected, link_info, ioSlot) {
+      const ret = originalConnectionsChange
+        ? originalConnectionsChange.apply(this, arguments)
+        : undefined;
+    
+      console.log("Connections change", arguments);
+
+      if (connected && ioSlot?.widget !== undefined) {
+        const existingEntry = this.properties.widgets_as_inputs.find(entry => entry[0] === ioSlot.name);
+        if (!existingEntry) {
+          this.properties.widgets_as_inputs.push([ioSlot.name, link_info.id]);
+        }
+      } else if (!connected && ioSlot?.widget !== undefined) {
+        // Remove widget name and link_info.id from inputWidgets if present
+        const indexToRemove = this.properties.widgets_as_inputs.findIndex(entry => entry[0] === ioSlot.name);
+        if (indexToRemove !== -1) {
+          this.properties.widgets_as_inputs.splice(indexToRemove, 1);
+        }
+      }
+    
+      return ret;
+    }
+
 
     nodeType.prototype.onNodeCreated = async function() {
       const ret = originalOnCreated

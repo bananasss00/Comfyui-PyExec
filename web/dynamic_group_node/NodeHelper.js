@@ -52,22 +52,9 @@ export class NodeHelper {
     // TODO: rawLink, lazy inputs???
 
     NodeHelper.resetNodeElements(node);
-
-    // Create inputs
     NodeHelper.createInputs(node);
-
-    // Restore link values
-    node.inputs.forEach((input, index) => {
-      if (currentLinks[index]) {
-        input.link = currentLinks[index];
-        console.log(`Link restored for input ${index}:`, input.link);
-      }
-    });
-
-    // Create widgets
+    NodeHelper.restoreLinks(node, currentLinks);
     NodeHelper.createNodeWidgets(nodeData, node);
-
-    // Create outputs
     NodeHelper.createOutputs(node);
 
     node.serialize();
@@ -111,6 +98,8 @@ export class NodeHelper {
         nodeData.input.required = {};
       }
       
+      console.log(`widgets_as_inputs: ${node.properties.widgets_as_inputs}, widgets_values: ${node.properties.widgets_values}`);
+
       try {
           const widgetsConfig = JSON.parse(node.properties.widgets);
           widgetsConfig.forEach(widget => {
@@ -124,7 +113,16 @@ export class NodeHelper {
               const callback = value => this.handleWidgetChange(node, widget.name, value);
               const getValue = w => this.getWidgetValue(node, w);
               
-              WIDGET_FACTORY[type](nodeData, node, widget, getValue, callback);
+              const w = WIDGET_FACTORY[type](nodeData, node, widget, getValue, callback);
+
+              // handle converted widgets to input
+              const widgetInputEntry = node.properties.widgets_as_inputs?.find(entry => entry[0] === w.widget.name);
+              if (widgetInputEntry && node.convertWidgetToInput(w.widget)) {
+                // restore links
+                node.inputs[node.inputs.length - 1].link = widgetInputEntry[1];
+                app.graph.setDirtyCanvas(true);
+                console.log(`converted widget ${w.widget.name} to input`);
+              }
           });
       } catch (error) {
           logger.error('Widgets config parsing error:', error);
