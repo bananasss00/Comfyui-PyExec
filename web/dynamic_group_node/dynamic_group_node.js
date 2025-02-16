@@ -4,7 +4,7 @@ import { NodeHelper } from "./NodeHelper.js";
 import { CustomizeDialog } from "./CustomizeDialog.js";
 
 // Constants and helpers
-const NODE_TYPE = "DynamicGroupNode";
+const NODE_TYPES = ["DynamicGroupNode", "DynamicGroupNode_Output"];
 
 const DEFAULT_PROPERTIES = {
   pycode: `out1=var1
@@ -85,7 +85,7 @@ app.registerExtension({
   name: "Comfy.PyExec.DynamicGroupNode",
 
   async beforeRegisterNodeDef(nodeType, nodeData, app) {
-    if (nodeData.name === NODE_TYPE) {
+    if (NODE_TYPES.includes(nodeData.name)) {
       this.extendNodePrototype(nodeType, nodeData);
       addCustomizeIcon(nodeType, nodeData);
     }

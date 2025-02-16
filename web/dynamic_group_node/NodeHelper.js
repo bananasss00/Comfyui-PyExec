@@ -51,18 +51,7 @@ export class NodeHelper {
 
     // TODO: rawLink, lazy inputs???
 
-    // remove multiline widgets elements
-    node.widgets?.forEach((widget, index) => {
-      if (widget.type === 'customtext') {
-        widget.element.remove();
-        console.log(`customtext ${widget.name} removed`);
-      }
-    });
-
-    // Clear previous elements
-    node.inputs = [];
-    node.widgets = [];
-    node.outputs = [];
+    NodeHelper.resetNodeElements(node);
 
     // Create inputs
     NodeHelper.createInputs(node);
@@ -95,16 +84,17 @@ export class NodeHelper {
   }
 
   static resetNodeElements(node) {
-      // Безопасное удаление кастомных элементов
-      node.widgets?.forEach(widget => {
-          if (widget.type === 'customtext' && widget.element?.remove) {
-              widget.element.remove();
-          }
-      });
-      
-      node.inputs = [];
-      node.widgets = [];
-      node.outputs = [];
+    node.widgets?.forEach((widget, index) => {
+      if (widget.type === 'customtext') {
+        widget.element.remove();
+        console.log(`customtext ${widget.name} removed`);
+      }
+    });
+
+    // Clear previous elements
+    node.inputs = [];
+    node.widgets = [];
+    node.outputs = [];
   }
 
   static restoreLinks(node, currentLinks) {
@@ -117,7 +107,9 @@ export class NodeHelper {
   }
 
   static createNodeWidgets(nodeData, node) {
-      nodeData.input.required = {};
+      if (nodeData?.input?.required) {
+        nodeData.input.required = {};
+      }
       
       try {
           const widgetsConfig = JSON.parse(node.properties.widgets);

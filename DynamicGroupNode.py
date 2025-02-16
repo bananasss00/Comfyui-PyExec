@@ -104,7 +104,7 @@ class DynamicGroupNode:
                 'graph': graph,
             })
             
-            print(pycode)
+            # print(pycode)
             with contextlib.redirect_stdout(output):
                 exec(pycode, my_namespace.__dict__)
             
@@ -127,6 +127,10 @@ class DynamicGroupNode:
             print(err)
             return tuple([[err]] * len(self.RETURN_TYPES))
 
+class DynamicGroupNode_Output(DynamicGroupNode):
+    OUTPUT_NODE = True
+
 NODE_CLASS_MAPPINGS = {
     "DynamicGroupNode": DynamicGroupNode, 
+    "DynamicGroupNode_Output": DynamicGroupNode_Output, 
 }

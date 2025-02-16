@@ -1,4 +1,5 @@
 import { app } from "../../../scripts/app.js";
+import { copyGraphNodes_v2 } from "./pyexec_graphnode2.js";
   
 const addMenuHandler = (nodeType, cb)=> {
 	const getOpts = nodeType.prototype.getExtraMenuOptions;
@@ -301,6 +302,17 @@ const copyGraphNodesDefinitions = (nodes) => {
 
 function showSubMenu(value, options, e, menu, node) {
     const behaviorOptions = [
+        {
+            content: "Make Group Node - V2",
+            callback: () => {
+                let graphcanvas = LGraphCanvas.active_canvas;
+                if (!graphcanvas.selected_nodes || Object.keys(graphcanvas.selected_nodes).length <= 1) {
+                    copyGraphNodes_v2([node]);
+                } else {
+                    copyGraphNodes_v2(graphcanvas.selected_nodes);
+                }
+            }
+        },
         {
             content: "Make Group Node",
             callback: () => {

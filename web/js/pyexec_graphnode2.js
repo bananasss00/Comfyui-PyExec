@@ -1,17 +1,9 @@
 import { app } from "../../../scripts/app.js";
-  
-const addMenuHandler = (nodeType, cb)=> {
-	const getOpts = nodeType.prototype.getExtraMenuOptions;
-	nodeType.prototype.getExtraMenuOptions = function () {
-		const r = getOpts.apply(this, arguments);
-		cb.apply(this, arguments);
-		return r;
-	};
-}
+import { NodeHelper } from "../dynamic_group_node/NodeHelper.js";
 
 const NODE_TYPES = {
     REROUTE: "Reroute",
-    PY_EXEC_OUTPUT: "PyExec_Output"
+    PY_EXEC_OUTPUT: "DynamicGroupNode_Output"
 };
 
 const topologicalSort = (nodes) => {
@@ -93,10 +85,13 @@ const topologicalSort = (nodes) => {
       this.usedNames = new Set();
     }
   
-    sanitizeName(name) {
-      return name.toLowerCase()
-        .replace(/[^\w]/g, '')
-        .replace(/\+/g, '_');
+    sanitizeName(name, lower=false) {
+        if (lower) {
+            name = name?.toLowerCase();
+        }
+        return name?.trim()
+            .replace(/[^A-z0-9\s_]/g, '')
+            .replace(/\s+/g, '_') ?? '';
     }
   
     createUniqueName(base) {
@@ -146,7 +141,7 @@ const topologicalSort = (nodes) => {
           });
   
           Object.values(node.widgets || {}).forEach(widget => {
-            if (widget.name) paramSet.add(widget.name);
+            if (widget.name && widget.name !== 'control_after_generate') paramSet.add(widget.name);
           });
         });
   
@@ -237,7 +232,7 @@ const topologicalSort = (nodes) => {
           // Если значение не найдено среди входов, проверяем виджеты
           if (!found && node.widgets) {
             Object.values(node.widgets).forEach(widget => {
-              if (widget.name === param) {
+              if (widget.name === param && widget.name !== 'control_after_generate') {
                 defaultValue = this.formatValue(widget.value);
                 found = true;
               }
@@ -302,12 +297,12 @@ const topologicalSort = (nodes) => {
   }
 
 // Основная функция
-const copyGraphNodes = (nodes) => {
+export const copyGraphNodes_v2 = (nodes) => {
     try {
         const generator = new UnifiedCodeGenerator(nodes);
         const fullCode = generator.generate();
         
-        // createOutputNode(fullCode);
+        createOutputNode(fullCode);
         navigator.clipboard.writeText(fullCode);
     } catch (error) {
         console.error('Code generation failed:', error);
@@ -322,47 +317,9 @@ function createOutputNode(code) {
         }
     ));
     
-    const codeWidget = newNode.widgets.find(w => w.name === 'pycode');
-    if (codeWidget) codeWidget.value = code;
+    newNode.properties.pycode = code;
+    newNode.properties.inputs = '';
+    newNode.properties.outputs = '';
+    newNode.properties.widgets = '[]';
+    NodeHelper.createWidgets(null, newNode);
 }
-
-
-function showSubMenu(value, options, e, menu, node) {
-    const behaviorOptions = [
-        {
-            content: "Make Group Node",
-            callback: () => {
-                let graphcanvas = LGraphCanvas.active_canvas;
-                if (!graphcanvas.selected_nodes || Object.keys(graphcanvas.selected_nodes).length <= 1) {
-                    copyGraphNodes([node]);
-                } else {
-                    copyGraphNodes(graphcanvas.selected_nodes);
-                }
-            }
-        }
-    ];
-
-    new LiteGraph.ContextMenu(behaviorOptions, {
-        event: e,
-        callback: null,
-        parentMenu: menu,
-        node: node
-    });
-
-    return false;  // This ensures the original context menu doesn't proceed
-}
-
-app.registerExtension({
-	name: "PyExec.js.menu.GraphNode2",
-
-	async beforeRegisterNodeDef(nodeType, nodeData, app) {
-
-        addMenuHandler(nodeType, function (_, options) {
-            options.unshift({
-                content: "PyExec2",
-                has_submenu: true,
-                callback: showSubMenu
-            })
-        })
-	}
-});
