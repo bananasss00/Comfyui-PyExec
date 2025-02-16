@@ -112,7 +112,7 @@ const topologicalSort = (nodes) => {
     }
   
     formatValue(value) {
-      if (typeof value === 'string') return `"${value.replace(/"/g, '\\"')}"`;
+      if (typeof value === 'string') return `"${value.replace(/"/g, '\\"').replace(/\\/g, '\\\\')}"`;
       if (value === true) return 'True';
       if (value === false) return 'False';
       if (Array.isArray(value)) return `[${value.map(v => this.formatValue(v)).join(', ')}]`;
@@ -132,7 +132,7 @@ const topologicalSort = (nodes) => {
     }
   
     generateWrapperFunctions(typeGroups) {
-      const wrapperFunctions = {}; // { [nodeType]: { funcName, params } }
+      const wrapperFunctions = {}; // { [nodeType]: { funcName, params, outputs } }
       const wrapperFuncCodes = [];
   
       for (const type in typeGroups) {
@@ -153,11 +153,10 @@ const topologicalSort = (nodes) => {
         const params = Array.from(paramSet);
         // params.sort();
   
-        wrapperFunctions[type] = { funcName, params };
         const paramList = params.join(', ');
         // Передаём все параметры в graph.node через именованные аргументы (param=param)
         const paramArgsForNode = params.map(p => `${p}=${p}`).join(', ');
-  
+
         // Берём выходы из первой ноды этого типа и формируем строки для docstring
         const firstNode = typeGroups[type][0];
         const outputs = [];
@@ -181,7 +180,7 @@ const topologicalSort = (nodes) => {
   
         const funcCode = [
           `def ${funcName}(${paramList}):`,
-          `    """Обёртка для ноды типа "${type}".`,
+          `    """Wrapper function for "${type}".`,
           ...outputDocLines.map(line => `    ${line}`),
           `    """`,
           `    node = graph.node('${type}', ${paramArgsForNode})`,
@@ -191,6 +190,7 @@ const topologicalSort = (nodes) => {
         ].join('\n');
   
         wrapperFuncCodes.push(funcCode);
+        wrapperFunctions[type] = { funcName, params, outputs: firstNode.outputs.map(output => output.type) };
       }
   
       return { wrapperFunctions, wrapperFuncCodes };
@@ -210,8 +210,8 @@ const topologicalSort = (nodes) => {
       const outputLinks = new Map();
   
       processedNodes.forEach((node, index) => {
-        const { funcName, params } = wrapperFunctions[node.type];
-        const nodeVar = node.var || `${funcName}_${index}`;
+        const { funcName, params, outputs } = wrapperFunctions[node.type];
+        const nodeVar = node.var || `${funcName}_${node.id}` || `${funcName}_${index}`;
         node.var = nodeVar;
         const argAssignments = [];
   
@@ -227,9 +227,9 @@ const topologicalSort = (nodes) => {
                 if (input.link && outputLinks.has(input.link)) {
                   defaultValue = outputLinks.get(input.link);
                 } else if (input.link) {
-                  defaultValue = 'LINK_'; // input.link;
+                  defaultValue = `LINK_${input.type}_${input.link}`;
                 }
-                found = true;
+                // found = true;
               }
             });
           }
@@ -243,15 +243,20 @@ const topologicalSort = (nodes) => {
               }
             });
           }
-  
-          defaultLines.push(`${defaultVar} = ${defaultValue}`);
-          argAssignments.push(`${param}=${defaultVar}`);
+          
+          if (found) {
+            defaultLines.push(`${defaultVar} = ${defaultValue}`);
+            argAssignments.push(`${param}=${defaultVar}`);
+          } else {
+            argAssignments.push(`${param}=${defaultValue}`);
+          }
+          
         });
   
         // Формируем вызов обёрнутой функции
         const outputCount = (node.outputs && node.outputs.length) || 0;
         const outVars = outputCount
-          ? Array.from({ length: outputCount }, (_, i) => `${nodeVar}_out${i}`)
+          ? Array.from({ length: outputCount }, (_, i) => `${outputs[i]}_${node.id}_out${i}`)
           : [];
   
         if (node.title) {
@@ -268,9 +273,14 @@ const topologicalSort = (nodes) => {
   
         // Сохраняем имена переменных для выходов, чтобы их можно было использовать в качестве значений для входов следующих нод
         if (node.outputs) {
+          //console.log('node.outputs', node.outputs);
           node.outputs.forEach((output, i) => {
-            if (output.link) {
-              outputLinks.set(output.link, `${nodeVar}_out${i}`);
+            //console.log('output.link', output.link);
+            if (Array.isArray(output.links)) {
+                output.links.forEach(link => {
+                    outputLinks.set(link, `${outputs[i]}_${node.id}_out${i}`);
+                    console.log(`${link} -> ${outputs[i]}_${node.id}_out${i}`);
+                });
             }
           });
         }
