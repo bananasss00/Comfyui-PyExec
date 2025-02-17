@@ -402,103 +402,189 @@ export class CustomizeDialog extends ComfyDialog {
   showInlineWidgetForm(widgetToEdit = null, editIndex = null) {
     const container = this.element.querySelector("#widget-editor");
     if (!container) return;
+
+    // Удаление предыдущей формы
     const existingForm = container.querySelector(".widget-form-inline");
     if (existingForm) existingForm.remove();
 
-    const form = document.createElement("div");
-    form.className = "widget-form-inline";
-    form.style.cssText = "position: relative; z-index: 1; backdrop-filter: blur(2px);";
-    container.appendChild(form);
+    // Создание элементов формы через шаблонную строку
+    const formHTML = `
+      <div class="widget-form-inline" style="position: relative; z-index: 1; backdrop-filter: blur(2px);">
+        <div class="form-fields">
+          ${this.createFormFieldsHTML(widgetToEdit)}
+        </div>
+        <div class="form-buttons" style="margin-top: 10px;">
+          <button class="save-btn">Save</button>
+          <button class="cancel-btn">Cancel</button>
+        </div>
+      </div>
+    `;
+    
+    container.insertAdjacentHTML("beforeend", formHTML);
+    const form = container.querySelector(".widget-form-inline");
 
-    // Фабрика создания поля формы
-    const createField = (labelText, type, value = "") => {
-      const fieldContainer = document.createElement("div");
-      fieldContainer.className = "form-field";
-      const label = document.createElement("label");
-      label.textContent = labelText;
-      const input = document.createElement(type === "select" ? "select" : "input");
-      if (type !== "select") input.type = type;
-      input.value = value;
-      fieldContainer.appendChild(label);
-      fieldContainer.appendChild(input);
-      return { container: fieldContainer, input };
+    // Получение ссылок на элементы формы
+    const typeSelect = form.querySelector("[data-field='type']");
+    const nameInput = form.querySelector("[data-field='name']");
+    const valueInput = form.querySelector("[data-field='value']");
+    const minInput = form.querySelector("[data-field='min']");
+    const maxInput = form.querySelector("[data-field='max']");
+    const stepInput = form.querySelector("[data-field='step']");
+    const comboInput = form.querySelector("[data-field='combo-values']");
+    const separatorInput = form.querySelector("[data-field='combo-separator']");
+
+    // Инициализация значений
+    this.initFormValues(widgetToEdit, {
+      typeSelect,
+      minInput,
+      maxInput,
+      stepInput
+    });
+
+    // Управление видимостью полей
+    const updateVisibility = () => this.updateFieldVisibility(typeSelect.value, form);
+    typeSelect.addEventListener("change", updateVisibility);
+    updateVisibility();
+
+    // Обработчики событий
+    form.querySelector(".save-btn").addEventListener("click", () => 
+      this.handleFormSave(form, editIndex, widgetToEdit)
+    );
+    
+    form.querySelector(".cancel-btn").addEventListener("click", () => 
+      form.remove()
+    );
+}
+
+// Вспомогательные методы:
+
+createFormFieldsHTML(widget) {
+    return `
+      <div class="form-field">
+        <label>Type</label>
+        <select data-field="type">
+          ${['INT', 'FLOAT', 'STRING', 'MSTRING', 'BOOLEAN', 'COMBO']
+            .map(opt => `<option value="${opt}" ${widget?.type === opt ? 'selected' : ''}>${opt}</option>`)
+            .join('')}
+        </select>
+      </div>
+      <div class="form-field">
+        <label>Name</label>
+        <input data-field="name" type="text" value="${widget?.name || ''}" required>
+      </div>
+      <div class="form-field">
+        <label>Value</label>
+        <input data-field="value" type="text" value="${widget?.value || ''}">
+      </div>
+      <div class="form-field number-field">
+        <label>Min</label>
+        <input data-field="min" type="number" value="${widget?.min ?? 1}">
+      </div>
+      <div class="form-field number-field">
+        <label>Max</label>
+        <input data-field="max" type="number" value="${widget?.max ?? 10000}">
+      </div>
+      <div class="form-field number-field">
+        <label>Step</label>
+        <input data-field="step" type="number" value="${widget?.step ?? 1}">
+      </div>
+      <div class="form-field combo-field">
+        <label>Combo Values</label>
+        <input data-field="combo-values" type="text" 
+               value="${widget?.values?.join(widget?.separator || ',') || ''}">
+      </div>
+      <div class="form-field combo-field">
+        <label>Combo Separator</label>
+        <input data-field="combo-separator" type="text" 
+               value="${widget?.separator || ','}">
+      </div>
+    `;
+}
+
+updateFieldVisibility(selectedType, form) {
+    const isNumberType = ['INT', 'FLOAT'].includes(selectedType);
+    const isComboType = selectedType === 'COMBO';
+
+    form.querySelectorAll('.number-field').forEach(el => 
+        el.style.display = isNumberType ? 'block' : 'none'
+    );
+
+    form.querySelectorAll('.combo-field').forEach(el => 
+        el.style.display = isComboType ? 'block' : 'none'
+    );
+}
+
+initFormValues(widget, fields) {
+    if (!widget) return;
+    
+    // Для числовых полей устанавливаем минимальные допустимые значения
+    fields.minInput.min = 0;
+    fields.maxInput.min = fields.minInput.value;
+    fields.stepInput.min = 0.1;
+}
+
+async handleFormSave(form, editIndex, widgetToEdit) {
+    const getValue = (field) => form.querySelector(`[data-field="${field}"]`).value;
+    
+    const newWidget = {
+        type: getValue('type'),
+        name: getValue('name').trim(),
+        value: getValue('value'),
     };
 
-    // Создание полей формы
-    const typeField = createField("Type", "select", widgetToEdit ? widgetToEdit.type : "");
-    ["INT", "FLOAT", "STRING", "MSTRING", "BOOLEAN", "COMBO"].forEach(opt => {
-      const option = document.createElement("option");
-      option.value = opt;
-      option.textContent = opt;
-      if (opt === typeField.input.value) option.selected = true;
-      typeField.input.appendChild(option);
-    });
-    const nameField = createField("Name", "text", widgetToEdit ? widgetToEdit.name : "");
-    const valueField = createField("Value", "text", widgetToEdit ? widgetToEdit.value : "");
-    const minField = createField("Min", "number", widgetToEdit ? widgetToEdit.min : "1");
-    const maxField = createField("Max", "number", widgetToEdit ? widgetToEdit.max : "10000");
-    const stepField = createField("Step", "number", widgetToEdit ? widgetToEdit.step : "1");
-    const comboField = createField("Combo Values", "text", widgetToEdit && widgetToEdit.values ? widgetToEdit.values.join(widgetToEdit.separator || ",") : "");
-    const separatorField = createField("Combo Separator", "text", widgetToEdit ? widgetToEdit.separator : ",");
-
-    const formFields = document.createElement("div");
-    [typeField, nameField, valueField, minField, maxField, stepField, comboField, separatorField].forEach(field => {
-      formFields.appendChild(field.container);
-    });
-    form.appendChild(formFields);
-
-    // Управление видимостью полей в зависимости от выбранного типа
-    const updateFieldVisibility = selectedType => {
-      const showNumFields = selectedType === "INT" || selectedType === "FLOAT";
-      [minField.container, maxField.container, stepField.container].forEach(el => {
-        el.style.display = showNumFields ? "" : "none";
-      });
-      comboField.container.style.display = selectedType === "COMBO" ? "" : "none";
-      separatorField.container.style.display = selectedType === "COMBO" ? "" : "none";
-    };
-    updateFieldVisibility(typeField.input.value);
-    typeField.input.addEventListener("change", () => updateFieldVisibility(typeField.input.value));
-
-    // Кнопки Save и Cancel
-    const btnContainer = document.createElement("div");
-    btnContainer.style.marginTop = "10px";
-    const saveBtn = this.createButton("Save", () => {
-      const newWidget = {
-        type: typeField.input.value,
-        name: nameField.input.value.trim(),
-        value: valueField.input.value,
-        min: minField.input.value,
-        max: maxField.input.value,
-        step: stepField.input.value,
-        values: comboField.input.value
-          ? comboField.input.value.split(separatorField.input.value).map(v => v.trim())
-          : [],
-        separator: separatorField.input.value
-      };
-      if (!newWidget.name) {
-        alert("Name is required");
+    // Валидация
+    if (!newWidget.name) {
+        this.showError('Name is required', form.querySelector('[data-field="name"]'));
         return;
-      }
-      let widgets = [];
-      try {
-        widgets = JSON.parse(this.node.properties.widgets);
-      } catch {
-        widgets = [];
-      }
-      if (widgetToEdit && editIndex !== null) {
-        widgets[editIndex] = newWidget;
-      } else {
-        widgets.push(newWidget);
-      }
-      this.node.properties.widgets = JSON.stringify(widgets, null, 2);
-      this.renderWidgetManagerInline();
-      form.remove();
-    });
-    const cancelBtn = this.createButton("Cancel", () => form.remove());
-    cancelBtn.style.marginLeft = "5px";
-    btnContainer.append(saveBtn, cancelBtn);
-    form.appendChild(btnContainer);
-  }
+    }
+
+    // Добавление дополнительных полей по типу
+    switch(newWidget.type) {
+        case 'INT':
+        case 'FLOAT':
+            newWidget.min = parseFloat(getValue('min'));
+            newWidget.max = parseFloat(getValue('max'));
+            newWidget.step = parseFloat(getValue('step'));
+            break;
+            
+        case 'COMBO':
+            const separator = getValue('combo-separator') || ',';
+            newWidget.values = getValue('combo-values')
+                .split(separator)
+                .map(v => v.trim())
+                .filter(Boolean);
+            newWidget.separator = separator;
+            break;
+    }
+
+    // Обновление списка виджетов
+    try {
+        const widgets = JSON.parse(this.node.properties.widgets || '[]');
+        
+        if (widgetToEdit && editIndex !== null) {
+            widgets[editIndex] = newWidget;
+        } else {
+            widgets.push(newWidget);
+        }
+        
+        this.node.properties.widgets = JSON.stringify(widgets, null, 2);
+        this.renderWidgetManagerInline();
+        form.remove();
+    } catch (error) {
+        this.showError('Error saving widgets: ' + error.message);
+    }
+}
+
+showError(message, element = null) {
+    // Улучшенный вывод ошибок с подсветкой поля
+    if (element) {
+        element.style.border = '1px solid red';
+        element.focus();
+    }
+    console.error(message);
+    // Здесь лучше использовать кастомный модальный диалог вместо alert
+    alert(message);
+}
 
   save() {
     // Обновляем данные из текстовых полей
