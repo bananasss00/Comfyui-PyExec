@@ -438,10 +438,11 @@ export class CustomizeDialog extends ComfyDialog {
     const minField = createField("Min", "number", widgetToEdit ? widgetToEdit.min : "1");
     const maxField = createField("Max", "number", widgetToEdit ? widgetToEdit.max : "10000");
     const stepField = createField("Step", "number", widgetToEdit ? widgetToEdit.step : "1");
-    const comboField = createField("Combo Values (comma separated)", "text", widgetToEdit && widgetToEdit.values ? widgetToEdit.values.join(",") : "");
+    const comboField = createField("Combo Values", "text", widgetToEdit && widgetToEdit.values ? widgetToEdit.values.join(widgetToEdit.separator || ",") : "");
+    const separatorField = createField("Combo Separator", "text", widgetToEdit ? widgetToEdit.separator : ",");
 
     const formFields = document.createElement("div");
-    [typeField, nameField, valueField, minField, maxField, stepField, comboField].forEach(field => {
+    [typeField, nameField, valueField, minField, maxField, stepField, comboField, separatorField].forEach(field => {
       formFields.appendChild(field.container);
     });
     form.appendChild(formFields);
@@ -453,6 +454,7 @@ export class CustomizeDialog extends ComfyDialog {
         el.style.display = showNumFields ? "" : "none";
       });
       comboField.container.style.display = selectedType === "COMBO" ? "" : "none";
+      separatorField.container.style.display = selectedType === "COMBO" ? "" : "none";
     };
     updateFieldVisibility(typeField.input.value);
     typeField.input.addEventListener("change", () => updateFieldVisibility(typeField.input.value));
@@ -469,8 +471,9 @@ export class CustomizeDialog extends ComfyDialog {
         max: maxField.input.value,
         step: stepField.input.value,
         values: comboField.input.value
-          ? comboField.input.value.split(",").map(v => v.trim())
-          : []
+          ? comboField.input.value.split(separatorField.input.value).map(v => v.trim())
+          : [],
+        separator: separatorField.input.value
       };
       if (!newWidget.name) {
         alert("Name is required");
