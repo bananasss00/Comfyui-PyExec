@@ -28,6 +28,7 @@ result='some result'
     { type: 'COMBO', name: 'Gender', value: 'male', values: ['male', 'female'] }
   ], null, 4),
   outputs: 'out1: STRING\nout2: INT\nmy_age: INT\nweight: FLOAT\nname: STRING\nactive: BOOLEAN\ngender: STRING',
+  nodes_template: ''
 };
 
 function addCustomizeIcon(nodeType, nodeData) {

@@ -314,6 +314,14 @@ function showSubMenu(value, options, e, menu, node) {
             }
         },
         {
+            content: "Paste Saved Node Template - V2",
+            disabled: node.type !== "DynamicGroupNode_Output" || !node.properties.nodes_template?.length,
+            callback: () => {
+                localStorage.setItem("litegrapheditor_clipboard", node.properties.nodes_template);
+                app.canvas.pasteFromClipboard();
+            }
+        },
+        {
             content: "Make Group Node",
             callback: () => {
                 let graphcanvas = LGraphCanvas.active_canvas;
@@ -354,7 +362,7 @@ app.registerExtension({
 
         addMenuHandler(nodeType, function (_, options) {
             options.unshift({
-                content: "PyExec",
+                content: "🚀 PyExec",
                 has_submenu: true,
                 callback: showSubMenu
             })

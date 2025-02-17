@@ -326,4 +326,10 @@ function createOutputNode(code) {
     newNode.properties.outputs = '';
     newNode.properties.widgets = '[]';
     NodeHelper.createWidgets(null, newNode);
+
+    // store selected nodes
+    app.canvas.copyToClipboard();
+    let data = localStorage.getItem("litegrapheditor_clipboard");
+    newNode.properties.nodes_template = data;
+    localStorage.setItem("litegrapheditor_clipboard", '');
 }
