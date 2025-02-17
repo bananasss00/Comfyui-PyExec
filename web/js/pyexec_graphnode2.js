@@ -162,7 +162,7 @@ const topologicalSort = (nodes) => {
             outputs.push(`out_${i} = node.out(${i})`);
             const output = firstNode.outputs[i];
             if (output.type) {
-              outputDocLines.push(`:return: ${output.type}`);
+              outputDocLines.push(`:return: ${output.label ?? output.name}(${output.type})`);
             } else {
               outputDocLines.push(`:return: out_${i}`);
             }
@@ -185,7 +185,7 @@ const topologicalSort = (nodes) => {
         ].join('\n');
   
         wrapperFuncCodes.push(funcCode);
-        wrapperFunctions[type] = { funcName, params, outputs: firstNode.outputs.map(output => output.type) };
+        wrapperFunctions[type] = { funcName, params, outputs: firstNode.outputs.map(output => output.label ?? output.name) };
       }
   
       return { wrapperFunctions, wrapperFuncCodes };
@@ -249,15 +249,19 @@ const topologicalSort = (nodes) => {
         });
   
         // Формируем вызов обёрнутой функции
+        const getFuncOutputName = (node, index) => {
+          let name = `${outputs[index]}_${node.id}_out${index}`;
+          return this.sanitizeName(name);
+        };
         const outputCount = (node.outputs && node.outputs.length) || 0;
         const outVars = outputCount
-          ? Array.from({ length: outputCount }, (_, i) => `${outputs[i]}_${node.id}_out${i}`)
+          ? Array.from({ length: outputCount }, (_, i) => getFuncOutputName(node, i))
           : [];
   
         if (node.title) {
           executionLines.push(`# ${node.title}`);
         } else {
-          executionLines.push(`# Нода типа ${node.type}`);
+          executionLines.push(`# ${node.type}`);
         }
   
         const callLine = outVars.length
@@ -273,8 +277,8 @@ const topologicalSort = (nodes) => {
             //console.log('output.link', output.link);
             if (Array.isArray(output.links)) {
                 output.links.forEach(link => {
-                    outputLinks.set(link, `${outputs[i]}_${node.id}_out${i}`);
-                    console.log(`${link} -> ${outputs[i]}_${node.id}_out${i}`);
+                    outputLinks.set(link, getFuncOutputName(node, i));
+                    console.log(`${link} -> ${getFuncOutputName(node, i)}`);
                 });
             }
           });
