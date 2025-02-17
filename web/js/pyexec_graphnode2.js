@@ -12,7 +12,7 @@ const topologicalSort = (nodes) => {
   
     nodes.forEach(node => {
       Object.values(node.outputs || {}).forEach(output => {
-        output.links.forEach(link => {
+        output.links?.forEach(link => {
           nodes.forEach(target => {
             if (Object.values(target.inputs || {}).some(input => input.link === link)) {
               graph.get(node).push(target);
