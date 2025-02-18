@@ -31,7 +31,7 @@ result='some result'
     links: [],
     widgets_as_inputs: [],
     widgets_values: {},
-    nodes_template: ''
+    nodes_template: '',
   }
 };
 
@@ -135,7 +135,7 @@ const NodePrototypeExtensions = (nodeData) => ({
     TypeRenderer.drawPortTypes(this, ctx);
 
     return ret;
-  }
+  },
 });
 
 // Register the extension

@@ -51,13 +51,15 @@ export class NodeHelper {
 
     // TODO: rawLink, lazy inputs???
 
+    // backup size
+    const size = [node.size[0], node.size[1]];
     NodeHelper.resetNodeElements(node);
     NodeHelper.createInputs(node);
     NodeHelper.createNodeWidgets(nodeData, node);
     NodeHelper.createOutputs(node);
     NodeHelper.restoreLinks(node);
-
     node.serialize();
+    node.setSize(size);
   }
 
   static createInputs(node) {
