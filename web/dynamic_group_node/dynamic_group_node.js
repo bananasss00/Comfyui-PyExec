@@ -2,6 +2,7 @@ import { app } from "../../../scripts/app.js";
 import { TypeRenderer } from "./TypeRenderer.js";
 import { NodeHelper } from "./NodeHelper.js";
 import { CustomizeDialog } from "./CustomizeDialog.js";
+import { decorateMethod, addTitleButton } from "./utils.js";
 
 // Constants and helpers
 const NODE_TYPES = ["DynamicGroupNode", "DynamicGroupNode_Output"];
@@ -32,56 +33,108 @@ result='some result'
   nodes_template: ''
 };
 
-function addCustomizeIcon(nodeType, nodeData) {
-  const options = {
-    icon: '⚙️',
-    size: 14,
-    margin: 4,
-    offsetY: 14 - 34,
-    onClick: (node) => {
-      const dlg = CustomizeDialog.getInstance();
-      dlg.show(nodeData, node);
-    }
-  };
+const CUSTOMIZE_ICON_CONFIG = {
+  icon: '⚙️',
+  size: 14,
+  margin: 4,
+  offsetY: 14 - 34
+};
 
-  // Сохраняем оригинальные методы, если они заданы
-  const originalDraw = nodeType.prototype.onDrawForeground;
-  const originalMouseDown = nodeType.prototype.onMouseDown;
-
-  nodeType.prototype.onDrawForeground = function(ctx) {
-    const ret = originalDraw ? originalDraw.apply(this, arguments) : undefined;
-
-    if (this.flags?.collapsed) return ret;
-
-    const x = this.size[0] - options.size - options.margin;
-    const y = options.offsetY;
-    ctx.save();
-    ctx.font = `${options.size}px sans-serif`;
-    ctx.textBaseline = 'top';
-    ctx.fillText(options.icon, x, y);
-    ctx.restore();
-
-    return ret;
-  };
-
-  nodeType.prototype.onMouseDown = function(e, localPos) {
-    const ret = originalMouseDown ? originalMouseDown.apply(this, arguments) : undefined;
-    if (this.flags?.collapsed) return ret;
-
-    const x = this.size[0] - options.size - options.margin;
-    const y = options.offsetY;
-    if (
-      localPos[0] >= x &&
-      localPos[0] <= x + options.size &&
-      localPos[1] >= y &&
-      localPos[1] <= y + options.size
-    ) {
-      options.onClick(this);
-      return true;
-    }
-    return ret;
-  };
+const extendPrototype = (nodeType, methods) => {
+  Object.entries(methods).forEach(([methodName, method]) => {
+    decorateMethod(nodeType, methodName, method);
+  });
 }
+
+const NodePrototypeExtensions = (nodeData) => ({
+  onConnectionsChange: function (original, ...args) {
+    const [ type, index, connected, link_info, ioSlot ] = args;
+    const ret = original?.apply(this, args);
+
+    console.log("Connections change", args);
+
+    if (connected && ioSlot && link_info) {
+      const existingEntry = this.properties.links.find(entry => entry[0] === ioSlot.name);
+      if (!existingEntry) {
+        this.properties.links.push([ioSlot.name, link_info.id]);
+      } else {
+        existingEntry[1] = link_info.id;
+      }
+    } 
+    else if (!connected && ioSlot && link_info) {
+      const indexToRemove = this.properties.links.findIndex(entry => entry[0] === ioSlot.name);
+      if (indexToRemove !== -1) {
+        this.properties.links.splice(indexToRemove, 1);
+      }
+    }
+
+    return ret;
+  },
+
+  removeInput: function(original, ...args) {
+    const [ slot ] = args;
+
+    const input = this.inputs[slot];
+    if (input.widget !== undefined) {
+      const indexToRemove = this.properties.widgets_as_inputs.findIndex(entry => entry === input.name);
+      if (indexToRemove !== -1) {
+        this.properties.widgets_as_inputs.splice(indexToRemove, 1);
+        console.log("removeInputWidget", input.name);
+      }
+    }
+
+    const ret = original?.apply(this, args);
+    return ret;
+  },
+
+  addInput: function(original, ...args) {
+      const [ name, type, extra_info ] = args;
+      const ret = original?.apply(this, args);
+
+      const input = this.inputs.find(input => input.name === name);
+      if (input?.widget !== undefined && this.properties.widgets_as_inputs.findIndex(entry => entry === name) === -1) {
+        this.properties.widgets_as_inputs.push(name);
+        console.log("addInputWidget", name);
+      }
+
+      return ret;
+    },
+
+  onConfigure: function(original, ...args) {
+    const ret = original?.apply(this, args);
+
+    this.onPropertyChanged = (name, value) => {
+      if (['inputs', 'widgets', 'outputs'].includes(name)) {
+        NodeHelper.createWidgets(nodeData, this);
+        console.debug("Property changed", name, value);
+      }
+    };
+
+    NodeHelper.createWidgets(nodeData, this);
+
+    return ret;
+  },
+  
+  onNodeCreated: function(original, ...args) {
+    const ret = original?.apply(this, args);
+
+    if (!this.properties.inputs) {
+      this.properties = structuredClone(DEFAULT_PROPERTIES);
+      NodeHelper.createWidgets(nodeData, this);
+    }
+
+    return ret;
+  },
+
+  onDrawForeground: function(original, ...args) {
+    const [ ctx ] = args;
+    const ret = original?.apply(this, args);
+
+    TypeRenderer.drawPortTypes(this, ctx);
+
+    return ret;
+  }
+});
 
 // Register the extension
 app.registerExtension({
@@ -89,118 +142,10 @@ app.registerExtension({
 
   async beforeRegisterNodeDef(nodeType, nodeData, app) {
     if (NODE_TYPES.includes(nodeData.name)) {
-      this.extendNodePrototype(nodeType, nodeData);
-      addCustomizeIcon(nodeType, nodeData);
+      extendPrototype(nodeType, NodePrototypeExtensions(nodeData));
+      addTitleButton(nodeType, CUSTOMIZE_ICON_CONFIG, node => 
+        CustomizeDialog.getInstance().show(nodeData, node)
+      );
     }
   },
-
-  extendNodePrototype(nodeType, nodeData) {
-    const originalOnCreated = nodeType.prototype.onNodeCreated;
-    const originalDraw = nodeType.prototype.onDrawForeground;
-    const originalConnectionsChange = nodeType.prototype.onConnectionsChange
-
-    // handle converted widgets to inputs
-    nodeType.prototype.onConnectionsChange = async function (type, index, connected, link_info, ioSlot) {
-      const ret = originalConnectionsChange
-        ? originalConnectionsChange.apply(this, arguments)
-        : undefined;
-    
-      console.log("Connections change", arguments);
-
-      if (connected && ioSlot && link_info) {
-        const existingEntry = this.properties.links.find(entry => entry[0] === ioSlot.name);
-        if (!existingEntry) {
-          this.properties.links.push([ioSlot.name, link_info.id]);
-        } else {
-          existingEntry[1] = link_info.id;
-        }
-      } 
-      else if (!connected && ioSlot && link_info) {
-        const indexToRemove = this.properties.links.findIndex(entry => entry[0] === ioSlot.name);
-        if (indexToRemove !== -1) {
-          this.properties.links.splice(indexToRemove, 1);
-        }
-      }
-    
-      return ret;
-    }
-
-    const originalremoveInput = nodeType.prototype.removeInput
-    nodeType.prototype.removeInput = async function (slot) {
-      const node = this;
-      const input = node.inputs[slot];
-      if (input.widget !== undefined) {
-        const indexToRemove = node.properties.widgets_as_inputs.findIndex(entry => entry === input.name);
-        if (indexToRemove !== -1) {
-          node.properties.widgets_as_inputs.splice(indexToRemove, 1);
-          console.log("removeInputWidget", input.name);
-        }
-      }
-      
-      const ret = originalremoveInput
-        ? originalremoveInput.apply(this, arguments)
-        : undefined;
-      return ret;
-    }
-
-    const originaladdInput = nodeType.prototype.addInput
-    nodeType.prototype.addInput = async function(name, type, extra_info) {
-      const ret = originaladdInput
-        ? originaladdInput.apply(this, arguments)
-        : undefined;
-
-      const node = this;
-      const input = node.inputs.find(input => input.name === name);
-      if (input?.widget !== undefined && node.properties.widgets_as_inputs.findIndex(entry => entry === name) === -1) {
-        node.properties.widgets_as_inputs.push(name);
-        console.log("addInputWidget", name);
-      }
-
-      return ret;
-    }
-
-    const origOnConfigure = nodeType.prototype.onConfigure;
-    nodeType.prototype.onConfigure = function() {
-      const r = origOnConfigure ? origOnConfigure.apply(this, arguments) : void 0;
-      console.warn("onConfigure", this.properties);
-
-      const node = this;
-      node.onPropertyChanged = (name, value) => {
-        if (['inputs', 'widgets', 'outputs'].includes(name)) {
-          NodeHelper.createWidgets(nodeData, node);
-          console.debug("Property changed", name, value);
-        }
-      };
-
-      NodeHelper.createWidgets(nodeData, node);
-
-      return r;
-    };
-
-
-    nodeType.prototype.onNodeCreated = async function() {
-      const ret = originalOnCreated
-          ? originalOnCreated.apply(this, arguments)
-          : undefined;
-
-      const node = this;
-      if (!node.properties.inputs) {
-        node.properties = structuredClone(DEFAULT_PROPERTIES);
-        NodeHelper.createWidgets(nodeData, node);
-      }
-
-      
-
-      return ret;
-    };
-
-    nodeType.prototype.onDrawForeground = function(ctx) {
-      const ret = originalDraw
-          ? originalDraw.apply(this, arguments)
-          : undefined;
-
-      TypeRenderer.drawPortTypes(this, ctx);
-      return ret;
-    };
-  }
 });
