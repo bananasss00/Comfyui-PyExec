@@ -88,17 +88,6 @@ export class NodeHelper {
     node.properties.links.forEach(([name, link_id]) => {
       NodeHelper.restoreLink(node, link_id, name);
     });
-      // currentLinks.forEach(({link_id, name}) => {
-      //     NodeHelper.restoreLink(node, link_id, name);
-      // });
-    
-
-      // node.inputs.forEach((input, index) => {
-      //     if (currentLinks[index]) {
-      //         input.link = currentLinks[index];
-      //         app.graph.setDirtyCanvas(true);
-      //     }
-      // });
   }
 
   static restoreLink(node, link_id, slotName) {
@@ -110,9 +99,6 @@ export class NodeHelper {
     
     const origin_node = graph.getNodeById(link.origin_id);
     if (origin_node) {
-      // graph.links.delete(link_id);
-      // origin_node?.connect(link.origin_slot, node, link.target_slot);
-
       const entryIndex = node.inputs.findIndex(entry => entry.name === slotName);
       if (entryIndex !== -1/*node.inputs[link.target_slot]*/) {
         //node.inputs[link.target_slot].link = link_id;
@@ -134,28 +120,36 @@ export class NodeHelper {
 
       try {
           const widgetsConfig = JSON.parse(node.properties.widgets);
-          widgetsConfig.forEach(widget => {
-              const type = widget.type?.toUpperCase();
+          widgetsConfig.forEach(config => {
+              const widgetType = config.type?.toUpperCase();
               
-              if (!type || !WIDGET_FACTORY[type]) {
-                  logger.warn(`Skipping invalid widget:`, widget);
+              if (!widgetType || !WIDGET_FACTORY[widgetType]) {
+                  logger.warn(`Skipping invalid widget:`, config);
                   return;
               }
               
-              const callback = value => this.handleWidgetChange(node, widget.name, value);
+              const callback = value => this.handleWidgetChange(node, config.name, value);
               const getValue = w => this.getWidgetValue(node, w);
               
-              const w = WIDGET_FACTORY[type](nodeData, node, widget, getValue, callback);
+              const creator = WIDGET_FACTORY[widgetType];
+              const widget = creator(nodeData, node, config, getValue, callback);
 
               // handle converted widgets to input
-              const widgetInputEntry = node.properties.widgets_as_inputs?.find(entry => entry === w.widget.name);
-              if (widgetInputEntry && node.convertWidgetToInput(w.widget)) {
-                console.log(`Converted widget ${w.widget.name} to input`);
-              }
+              NodeHelper.handleWidgetConversion(node, widget.widget);
           });
       } catch (error) {
           logger.error('Widgets config parsing error:', error);
           throw new Error('Invalid widgets configuration');
+      }
+  }
+
+  static handleWidgetConversion(node, widget) {
+      const isConvertible = node.properties.widgets_as_inputs?.includes(
+        widget.name
+      );
+      
+      if (isConvertible && node.convertWidgetToInput(widget)) {
+        console.log(`Converted widget to input: ${widget.name}`);
       }
   }
 
