@@ -16,8 +16,6 @@ active=Active
 gender=Gender
 result='some result'
 `,
-  widgets_as_inputs: [],
-  widgets_values: {},
   inputs: 'var1: STRING\nvar2: INT',
   widgets: JSON.stringify([
     { type: 'INT', name: 'MyAge', value: '30', min: '0', max: '100', step: '1' },
@@ -28,6 +26,9 @@ result='some result'
     { type: 'COMBO', name: 'Gender', value: 'male', values: ['male', 'female'] }
   ], null, 4),
   outputs: 'out1: STRING\nout2: INT\nmy_age: INT\nweight: FLOAT\nname: STRING\nactive: BOOLEAN\ngender: STRING',
+  links: [],
+  widgets_as_inputs: [],
+  widgets_values: {},
   nodes_template: ''
 };
 
@@ -106,21 +107,75 @@ app.registerExtension({
     
       console.log("Connections change", arguments);
 
-      if (connected && ioSlot?.widget !== undefined) {
-        const existingEntry = this.properties.widgets_as_inputs.find(entry => entry[0] === ioSlot.name);
+      if (connected && ioSlot && link_info) {
+        const existingEntry = this.properties.links.find(entry => entry[0] === ioSlot.name);
         if (!existingEntry) {
-          this.properties.widgets_as_inputs.push([ioSlot.name, link_info.id]);
+          this.properties.links.push([ioSlot.name, link_info.id]);
+        } else {
+          existingEntry[1] = link_info.id;
         }
-      } else if (!connected && ioSlot?.widget !== undefined) {
-        // Remove widget name and link_info.id from inputWidgets if present
-        const indexToRemove = this.properties.widgets_as_inputs.findIndex(entry => entry[0] === ioSlot.name);
+      } 
+      else if (!connected && ioSlot && link_info) {
+        const indexToRemove = this.properties.links.findIndex(entry => entry[0] === ioSlot.name);
         if (indexToRemove !== -1) {
-          this.properties.widgets_as_inputs.splice(indexToRemove, 1);
+          this.properties.links.splice(indexToRemove, 1);
         }
       }
     
       return ret;
     }
+
+    const originalremoveInput = nodeType.prototype.removeInput
+    nodeType.prototype.removeInput = async function (slot) {
+      const node = this;
+      const input = node.inputs[slot];
+      if (input.widget !== undefined) {
+        const indexToRemove = node.properties.widgets_as_inputs.findIndex(entry => entry === input.name);
+        if (indexToRemove !== -1) {
+          node.properties.widgets_as_inputs.splice(indexToRemove, 1);
+          console.log("removeInputWidget", input.name);
+        }
+      }
+      
+      const ret = originalremoveInput
+        ? originalremoveInput.apply(this, arguments)
+        : undefined;
+      return ret;
+    }
+
+    const originaladdInput = nodeType.prototype.addInput
+    nodeType.prototype.addInput = async function(name, type, extra_info) {
+      const ret = originaladdInput
+        ? originaladdInput.apply(this, arguments)
+        : undefined;
+
+      const node = this;
+      const input = node.inputs.find(input => input.name === name);
+      if (input?.widget !== undefined && node.properties.widgets_as_inputs.findIndex(entry => entry === name) === -1) {
+        node.properties.widgets_as_inputs.push(name);
+        console.log("addInputWidget", name);
+      }
+
+      return ret;
+    }
+
+    const origOnConfigure = nodeType.prototype.onConfigure;
+    nodeType.prototype.onConfigure = function() {
+      const r = origOnConfigure ? origOnConfigure.apply(this, arguments) : void 0;
+      console.warn("onConfigure", this.properties);
+
+      const node = this;
+      node.onPropertyChanged = (name, value) => {
+        if (['inputs', 'widgets', 'outputs'].includes(name)) {
+          NodeHelper.createWidgets(nodeData, node);
+          console.debug("Property changed", name, value);
+        }
+      };
+
+      NodeHelper.createWidgets(nodeData, node);
+
+      return r;
+    };
 
 
     nodeType.prototype.onNodeCreated = async function() {
@@ -134,12 +189,7 @@ app.registerExtension({
         NodeHelper.createWidgets(nodeData, node);
       }
 
-      node.onPropertyChanged = (name, value) => {
-        if (['inputs', 'widgets', 'outputs'].includes(name)) {
-          NodeHelper.createWidgets(nodeData, node);
-          console.log("Property changed", name, value);
-        }
-      };
+      
 
       return ret;
     };

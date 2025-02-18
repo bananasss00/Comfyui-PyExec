@@ -46,16 +46,16 @@ const parseConnections = (connectionString, defaultType = '*') =>
 // Helper class to manage node widgets
 export class NodeHelper {
   static createWidgets(nodeData, node) {
-    const currentLinks = node.inputs.map(input => input.link);
-    console.log(currentLinks);
+    // const currentLinks = node.inputs.map(input => ({link_id: input.link, name: input.name}));
+    // console.log('currentLinks', currentLinks, node);
 
     // TODO: rawLink, lazy inputs???
 
     NodeHelper.resetNodeElements(node);
     NodeHelper.createInputs(node);
-    NodeHelper.restoreLinks(node, currentLinks);
     NodeHelper.createNodeWidgets(nodeData, node);
     NodeHelper.createOutputs(node);
+    NodeHelper.restoreLinks(node);
 
     node.serialize();
   }
@@ -84,13 +84,45 @@ export class NodeHelper {
     node.outputs = [];
   }
 
-  static restoreLinks(node, currentLinks) {
-      node.inputs.forEach((input, index) => {
-          if (currentLinks[index]) {
-              input.link = currentLinks[index];
-              app.graph.setDirtyCanvas(true);
-          }
-      });
+  static restoreLinks(node) {
+    node.properties.links.forEach(([name, link_id]) => {
+      NodeHelper.restoreLink(node, link_id, name);
+    });
+      // currentLinks.forEach(({link_id, name}) => {
+      //     NodeHelper.restoreLink(node, link_id, name);
+      // });
+    
+
+      // node.inputs.forEach((input, index) => {
+      //     if (currentLinks[index]) {
+      //         input.link = currentLinks[index];
+      //         app.graph.setDirtyCanvas(true);
+      //     }
+      // });
+  }
+
+  static restoreLink(node, link_id, slotName) {
+    const link = graph.links[link_id];
+    if (!link) {
+      console.warn(`Link ${link_id} not found`);
+      return;
+    }
+    
+    const origin_node = graph.getNodeById(link.origin_id);
+    if (origin_node) {
+      // graph.links.delete(link_id);
+      // origin_node?.connect(link.origin_slot, node, link.target_slot);
+
+      const entryIndex = node.inputs.findIndex(entry => entry.name === slotName);
+      if (entryIndex !== -1/*node.inputs[link.target_slot]*/) {
+        //node.inputs[link.target_slot].link = link_id;
+        link.target_slot = entryIndex;
+        node.inputs[entryIndex].link = link_id;
+        app.graph.setDirtyCanvas(true);
+
+        console.log(`Restored link ${link_id} from #${link.origin_id}:${link.origin_slot} to #${node.id}:${link.target_slot}`);
+      }
+    }
   }
 
   static createNodeWidgets(nodeData, node) {
@@ -116,12 +148,9 @@ export class NodeHelper {
               const w = WIDGET_FACTORY[type](nodeData, node, widget, getValue, callback);
 
               // handle converted widgets to input
-              const widgetInputEntry = node.properties.widgets_as_inputs?.find(entry => entry[0] === w.widget.name);
+              const widgetInputEntry = node.properties.widgets_as_inputs?.find(entry => entry === w.widget.name);
               if (widgetInputEntry && node.convertWidgetToInput(w.widget)) {
-                // restore links
-                node.inputs[node.inputs.length - 1].link = widgetInputEntry[1];
-                app.graph.setDirtyCanvas(true);
-                console.log(`converted widget ${w.widget.name} to input`);
+                console.log(`Converted widget ${w.widget.name} to input`);
               }
           });
       } catch (error) {
