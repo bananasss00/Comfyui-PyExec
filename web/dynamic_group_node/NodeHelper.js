@@ -85,7 +85,7 @@ export class NodeHelper {
   }
 
   static restoreLinks(node) {
-    node.properties.links.forEach(([name, link_id]) => {
+    node.properties.data.links.forEach(([name, link_id]) => {
       NodeHelper.restoreLink(node, link_id, name);
     });
   }
@@ -116,7 +116,7 @@ export class NodeHelper {
         nodeData.input.required = {};
       }
       
-      console.log(`widgets_as_inputs: ${node.properties.widgets_as_inputs}, widgets_values: ${node.properties.widgets_values}`);
+      console.log(`widgets_as_inputs: ${node.properties.data.widgets_as_inputs}, widgets_values: ${node.properties.data.widgets_values}`);
 
       try {
           const widgetsConfig = JSON.parse(node.properties.widgets);
@@ -144,7 +144,7 @@ export class NodeHelper {
   }
 
   static handleWidgetConversion(node, widget) {
-      const isConvertible = node.properties.widgets_as_inputs?.includes(
+      const isConvertible = node.properties.data.widgets_as_inputs?.includes(
         widget.name
       );
       
@@ -154,10 +154,10 @@ export class NodeHelper {
   }
 
   static handleWidgetChange(node, name, value) {
-      node.properties.widgets_values = node.properties.widgets_values || {};
+      node.properties.data.widgets_values = node.properties.data.widgets_values || {};
       
-      if (node.properties.widgets_values[name] !== value) {
-          node.properties.widgets_values[name] = value;
+      if (node.properties.data.widgets_values[name] !== value) {
+          node.properties.data.widgets_values[name] = value;
           node.serialize();
           app.graph.setDirtyCanvas(true);
           logger.debug(`Widget updated: ${name} = ${value}`);
@@ -166,7 +166,7 @@ export class NodeHelper {
 
   static getWidgetValue(node, widget) {
     const defaultValue = this.parseValue(widget);
-    return node.properties.widgets_values?.[widget.name] ?? defaultValue;
+    return node.properties.data.widgets_values?.[widget.name] ?? defaultValue;
   }
 
   static parseValue(widget) {

@@ -315,9 +315,9 @@ function showSubMenu(value, options, e, menu, node) {
         },
         {
             content: "Paste Saved Node Template - V2",
-            disabled: node.type !== "DynamicGroupNode_Output" || !node.properties.nodes_template?.length,
+            disabled: node.type !== "DynamicGroupNode_Output" || !node.properties.data.nodes_template?.length,
             callback: () => {
-                localStorage.setItem("litegrapheditor_clipboard", node.properties.nodes_template);
+                localStorage.setItem("litegrapheditor_clipboard", node.properties.data.nodes_template);
                 app.canvas.pasteFromClipboard();
             }
         },

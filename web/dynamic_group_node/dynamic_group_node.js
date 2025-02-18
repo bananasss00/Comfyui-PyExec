@@ -27,10 +27,12 @@ result='some result'
     { type: 'COMBO', name: 'Gender', value: 'male', values: ['male', 'female'] }
   ], null, 4),
   outputs: 'out1: STRING\nout2: INT\nmy_age: INT\nweight: FLOAT\nname: STRING\nactive: BOOLEAN\ngender: STRING',
-  links: [],
-  widgets_as_inputs: [],
-  widgets_values: {},
-  nodes_template: ''
+  data: {
+    links: [],
+    widgets_as_inputs: [],
+    widgets_values: {},
+    nodes_template: ''
+  }
 };
 
 const CUSTOMIZE_ICON_CONFIG = {
@@ -54,17 +56,17 @@ const NodePrototypeExtensions = (nodeData) => ({
     console.log("Connections change", args);
 
     if (connected && ioSlot && link_info) {
-      const existingEntry = this.properties.links.find(entry => entry[0] === ioSlot.name);
+      const existingEntry = this.properties.data.links.find(entry => entry[0] === ioSlot.name);
       if (!existingEntry) {
-        this.properties.links.push([ioSlot.name, link_info.id]);
+        this.properties.data.links.push([ioSlot.name, link_info.id]);
       } else {
         existingEntry[1] = link_info.id;
       }
     } 
     else if (!connected && ioSlot && link_info) {
-      const indexToRemove = this.properties.links.findIndex(entry => entry[0] === ioSlot.name);
+      const indexToRemove = this.properties.data.links.findIndex(entry => entry[0] === ioSlot.name);
       if (indexToRemove !== -1) {
-        this.properties.links.splice(indexToRemove, 1);
+        this.properties.data.links.splice(indexToRemove, 1);
       }
     }
 
@@ -76,9 +78,9 @@ const NodePrototypeExtensions = (nodeData) => ({
 
     const input = this.inputs[slot];
     if (input.widget !== undefined) {
-      const indexToRemove = this.properties.widgets_as_inputs.findIndex(entry => entry === input.name);
+      const indexToRemove = this.properties.data.widgets_as_inputs.findIndex(entry => entry === input.name);
       if (indexToRemove !== -1) {
-        this.properties.widgets_as_inputs.splice(indexToRemove, 1);
+        this.properties.data.widgets_as_inputs.splice(indexToRemove, 1);
         console.log("removeInputWidget", input.name);
       }
     }
@@ -92,8 +94,8 @@ const NodePrototypeExtensions = (nodeData) => ({
       const ret = original?.apply(this, args);
 
       const input = this.inputs.find(input => input.name === name);
-      if (input?.widget !== undefined && this.properties.widgets_as_inputs.findIndex(entry => entry === name) === -1) {
-        this.properties.widgets_as_inputs.push(name);
+      if (input?.widget !== undefined && this.properties.data.widgets_as_inputs.findIndex(entry => entry === name) === -1) {
+        this.properties.data.widgets_as_inputs.push(name);
         console.log("addInputWidget", name);
       }
 

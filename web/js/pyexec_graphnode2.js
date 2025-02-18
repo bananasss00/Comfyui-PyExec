@@ -330,6 +330,6 @@ function createOutputNode(code) {
     // store selected nodes
     app.canvas.copyToClipboard();
     let data = localStorage.getItem("litegrapheditor_clipboard");
-    newNode.properties.nodes_template = data;
+    newNode.properties.data.nodes_template = data;
     localStorage.setItem("litegrapheditor_clipboard", '');
 }
