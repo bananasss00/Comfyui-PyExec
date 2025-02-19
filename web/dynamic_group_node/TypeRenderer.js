@@ -14,9 +14,17 @@ export class TypeRenderer {
       const type = output.type === "*" ? "any" : output.type.toLowerCase();
       const color = LGraphCanvas.link_type_colors[output.type.toUpperCase()] || "#AAA";
 
+      // latest ComfyUI-FrontEnd fix
+      let posY = index * 20 + 19;
+      if (output._layoutElement?.boundingRect) {
+        const [ x, y, width, height ] = output._layoutElement.boundingRect;
+        posY = y + height / 2;
+        ctx.textBaseline = "middle";
+      }
+
       TypeRenderer.drawTypeLabel(ctx, type, color, {
         x: node.size[0] - ctx.measureText(output.name).width - 25,
-        y: index * 20 + 19,
+        y: posY,
         align: "right"
       });
     });
@@ -27,11 +35,20 @@ export class TypeRenderer {
       const type = input.type === "*" ? "any" : input.type.toLowerCase();
       const color = LGraphCanvas.link_type_colors[input.type.toUpperCase()] || "#AAA";
 
+      // latest ComfyUI-FrontEnd fix
+      let posY = index * 20 + 19;
+      if (input._layoutElement?.boundingRect) {
+        const [ x, y, width, height ] = input._layoutElement.boundingRect;
+        posY = y + height / 2;
+        ctx.textBaseline = "middle";
+      }
+
       TypeRenderer.drawTypeLabel(ctx, type, color, {
         x: 25 + ctx.measureText(input.name).width,
-        y: index * 20 + 19,
+        y: posY,
         align: "left"
       });
+      
     });
   }
 
