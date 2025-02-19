@@ -46,13 +46,21 @@ const parseConnections = (connectionString, defaultType = '*') =>
 // Helper class to manage node widgets
 export class NodeHelper {
   static createWidgets(nodeData, node) {
-    // const currentLinks = node.inputs.map(input => ({link_id: input.link, name: input.name}));
-    // console.log('currentLinks', currentLinks, node);
-
     // TODO: rawLink, lazy inputs???
 
     // backup size
     const size = [node.size[0], node.size[1]];
+
+    // create new fields
+    if (!node.properties.data.labels) {
+      node.properties.data.labels = {
+        inputs: {},
+        outputs: {},
+        widgets: {}
+      };
+    }
+
+    // create new fields
     NodeHelper.resetNodeElements(node);
     NodeHelper.createInputs(node);
     NodeHelper.createNodeWidgets(nodeData, node);
@@ -63,13 +71,31 @@ export class NodeHelper {
   }
 
   static createInputs(node) {
-    parseConnections(node.properties.inputs).forEach(({name, type}) => 
-        node.addInput(name, type));
+    parseConnections(node.properties.inputs).forEach(({name, type}) => {
+        const input = node.addInput(name, type);
+        Object.defineProperty(input, 'label', {
+          get: function() {
+              return node.properties.data.labels.inputs[name] || name;
+          },
+          set: function(value) {
+              node.properties.data.labels.inputs[name] = value;
+          }
+        });
+    });
   }
 
   static createOutputs(node) {
-    parseConnections(node.properties.outputs).forEach(({name, type}) => 
-        node.addOutput(name, type));
+    parseConnections(node.properties.outputs).forEach(({name, type}) => {
+      const output = node.addOutput(name, type);
+      Object.defineProperty(output, 'label', {
+        get: function() {
+            return node.properties.data.labels.outputs[name] || name;
+        },
+        set: function(value) {
+            node.properties.data.labels.outputs[name] = value;
+        }
+      });
+    });
   }
 
   static resetNodeElements(node) {
@@ -152,6 +178,18 @@ export class NodeHelper {
       
       if (isConvertible && node.convertWidgetToInput(widget)) {
         console.log(`Converted widget to input: ${widget.name}`);
+
+        const name = widget.name;
+        const input = node.inputs.find(input => input.widget?.name === name);
+        Object.defineProperty(input, 'label', {
+          get: function() {
+              return node.properties.data.labels.widgets[name] || name;
+          },
+          set: function(value) {
+              console.log(`Setting label for widget ${name} to ${value}`);
+              node.properties.data.labels.widgets[name] = value;
+          }
+        });
       }
   }
 

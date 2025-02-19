@@ -32,6 +32,11 @@ result='some result'
     widgets_as_inputs: [],
     widgets_values: {},
     nodes_template: '',
+    labels: {
+      inputs: {},
+      outputs: {},
+      widgets: {}
+    }
   }
 };
 

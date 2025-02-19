@@ -23,7 +23,7 @@ export class TypeRenderer {
       }
 
       TypeRenderer.drawTypeLabel(ctx, type, color, {
-        x: node.size[0] - ctx.measureText(output.name).width - 25,
+        x: node.size[0] - ctx.measureText(output.label || output.name).width - 25,
         y: posY,
         align: "right"
       });
@@ -44,7 +44,7 @@ export class TypeRenderer {
       }
 
       TypeRenderer.drawTypeLabel(ctx, type, color, {
-        x: 25 + ctx.measureText(input.name).width,
+        x: 25 + ctx.measureText(input.label || input.name).width,
         y: posY,
         align: "left"
       });
