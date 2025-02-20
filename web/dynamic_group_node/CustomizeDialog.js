@@ -14,45 +14,45 @@ export class CustomizeDialog extends ComfyDialog {
     }
 
     constructor() {
-      super();
-      this.node = null;
-      this.originalProperties = {};
-      this.saved = false;
-      this.isLayoutCreated = false;
-      this.isDragging = false;
-      this.dragStartX = 0;
-      this.dragStartY = 0;
-      this.initialX = 0;
-      this.initialY = 0;
-    
-      this.element = $el("div.comfy-modal.custom-dialog", {
-        parent: document.body,
-        style: { 
-          display: "flex", 
-          flexDirection: "column",
-          position: "fixed",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%, -50%)"
-        }
-      }, [
-        $el("div.drag-handle", {
-          style: {
-            cursor: "move",
-            padding: "8px",
-            background: "var(--bg-secondary)",
-            display: "flex",
-            justifyContent: "flex-end"
-          }
-        }),
-        $el("div.comfy-modal-content", this.createTabs())
-      ]);
-    
-      // Добавляем обработчики событий для перетаскивания
-      const handle = this.element.querySelector(".drag-handle");
-      handle.addEventListener("mousedown", this.startDragging.bind(this));
-      document.addEventListener("mousemove", this.dragDialog.bind(this));
-      document.addEventListener("mouseup", this.stopDragging.bind(this));
+        super();
+        this.node = null;
+        this.originalProperties = {};
+        this.saved = false;
+        this.isLayoutCreated = false;
+        this.isDragging = false;
+        this.dragStartX = 0;
+        this.dragStartY = 0;
+        this.initialX = 0;
+        this.initialY = 0;
+
+        this.element = $el("div.comfy-modal.custom-dialog", {
+            parent: document.body,
+            style: {
+                display: "flex",
+                flexDirection: "column",
+                position: "fixed",
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)"
+            }
+        }, [
+            $el("div.drag-handle", {
+                style: {
+                    cursor: "move",
+                    padding: "8px",
+                    background: "var(--bg-secondary)",
+                    display: "flex",
+                    justifyContent: "flex-end"
+                }
+            }),
+            $el("div.comfy-modal-content", this.createTabs())
+        ]);
+
+        // Добавляем обработчики событий для перетаскивания
+        const handle = this.element.querySelector(".drag-handle");
+        handle.addEventListener("mousedown", this.startDragging.bind(this));
+        document.addEventListener("mousemove", this.dragDialog.bind(this));
+        document.addEventListener("mouseup", this.stopDragging.bind(this));
     }
 
     createTabs() {
@@ -384,11 +384,17 @@ export class CustomizeDialog extends ComfyDialog {
         addWidgetBtn.onclick = () => this.showInlineWidgetForm();
         widgetsContainer.appendChild(addWidgetBtn);
 
-        // Создаём таблицу виджетов
+        // Создаём таблицу виджетов с дополнительным столбцом для перетаскивания
         const table = document.createElement("table");
         table.className = "widget-table";
         const thead = document.createElement("thead");
         const headerRow = document.createElement("tr");
+
+        // Добавляем пустой заголовок для drag handle
+        const dragHeader = document.createElement("th");
+        dragHeader.textContent = "";
+        headerRow.appendChild(dragHeader);
+
         ["Type", "Name", "Value", "Actions"].forEach(text => {
             const th = document.createElement("th");
             th.textContent = text;
@@ -407,11 +413,59 @@ export class CustomizeDialog extends ComfyDialog {
 
         widgets.forEach((widget, index) => {
             const row = document.createElement("tr");
+            row.dataset.index = index;
+
+            // Создаём ячейку с ручкой перетаскивания
+            const dragTd = document.createElement("td");
+            dragTd.className = "widget-drag-handle";
+            dragTd.style.cursor = "move";
+            dragTd.textContent = "|||";
+
+            // При нажатии на ручку включаем возможность перетаскивания строки
+            dragTd.addEventListener("mousedown", (e) => {
+                row.draggable = true;
+            });
+            // Отключаем draggable после завершения перетаскивания
+            row.addEventListener("dragend", (e) => {
+                row.draggable = false;
+                row.classList.remove("dragging");
+            });
+            row.addEventListener("dragstart", (e) => {
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", index);
+                row.classList.add("dragging");
+            });
+            row.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                row.classList.add("drag-over");
+            });
+            row.addEventListener("dragleave", (e) => {
+                row.classList.remove("drag-over");
+            });
+            row.addEventListener("drop", (e) => {
+                e.preventDefault();
+                row.classList.remove("drag-over");
+                const sourceIndex = parseInt(e.dataTransfer.getData("text/plain"));
+                const targetIndex = parseInt(row.dataset.index);
+                if (sourceIndex === targetIndex) return;
+                // Перестановка элементов в массиве виджетов
+                let newWidgets = widgets.slice();
+                const draggedWidget = newWidgets.splice(sourceIndex, 1)[0];
+                newWidgets.splice(targetIndex, 0, draggedWidget);
+                this.node.properties.widgets = JSON.stringify(newWidgets, null, 2);
+                this.renderWidgetManagerInline();
+            });
+
+            row.appendChild(dragTd);
+
+            // Создаём ячейки для остальных данных виджета
             ["type", "name", "value"].forEach(key => {
                 const td = document.createElement("td");
                 td.textContent = widget[key];
                 row.appendChild(td);
             });
+
+            // Столбец действий (редактирование, клонирование, удаление)
             const tdActions = document.createElement("td");
             const editBtn = document.createElement("button");
             editBtn.textContent = "Edit";
@@ -433,6 +487,7 @@ export class CustomizeDialog extends ComfyDialog {
                 this.renderWidgetManagerInline();
             };
             tdActions.appendChild(deleteBtn);
+
             row.appendChild(tdActions);
             tbody.appendChild(row);
         });
@@ -440,6 +495,7 @@ export class CustomizeDialog extends ComfyDialog {
         widgetsContainer.appendChild(table);
         container.appendChild(widgetsContainer);
     }
+
 
     showInlineWidgetForm(widgetToEdit = null, editIndex = null) {
         const container = this.element.querySelector("#widget-editor");
@@ -632,29 +688,29 @@ export class CustomizeDialog extends ComfyDialog {
     }
 
     startDragging(e) {
-      this.isDragging = true;
-      this.dragStartX = e.clientX;
-      this.dragStartY = e.clientY;
-      const rect = this.element.getBoundingClientRect();
-      this.initialX = rect.left;
-      this.initialY = rect.top;
-      this.element.style.transition = "none"; // Отключаем анимацию во время перетаскивания
+        this.isDragging = true;
+        this.dragStartX = e.clientX;
+        this.dragStartY = e.clientY;
+        const rect = this.element.getBoundingClientRect();
+        this.initialX = rect.left;
+        this.initialY = rect.top;
+        this.element.style.transition = "none"; // Отключаем анимацию во время перетаскивания
     }
-    
+
     dragDialog(e) {
-      if (!this.isDragging) return;
-      
-      const deltaX = e.clientX - this.dragStartX;
-      const deltaY = e.clientY - this.dragStartY;
-      
-      this.element.style.left = `${this.initialX + deltaX}px`;
-      this.element.style.top = `${this.initialY + deltaY}px`;
-      this.element.style.transform = "none"; // Убираем трансформ для позиционирования через left/top
+        if (!this.isDragging) return;
+
+        const deltaX = e.clientX - this.dragStartX;
+        const deltaY = e.clientY - this.dragStartY;
+
+        this.element.style.left = `${this.initialX + deltaX}px`;
+        this.element.style.top = `${this.initialY + deltaY}px`;
+        this.element.style.transform = "none"; // Убираем трансформ для позиционирования через left/top
     }
-    
+
     stopDragging() {
-      this.isDragging = false;
-      this.element.style.transition = "all 0.2s ease"; // Восстанавливаем анимацию
+        this.isDragging = false;
+        this.element.style.transition = "all 0.2s ease"; // Восстанавливаем анимацию
     }
 
     showError(message, element = null) {
