@@ -4,127 +4,127 @@ import { ComfyDialog, $el } from "../../../scripts/ui.js";
 import { NodeHelper } from "./NodeHelper.js";
 
 export class CustomizeDialog extends ComfyDialog {
-  static instance = null;
+    static instance = null;
 
-  static getInstance() {
-    if (!CustomizeDialog.instance) {
-      CustomizeDialog.instance = new CustomizeDialog();
-    }
-    return CustomizeDialog.instance;
-  }
-
-  constructor() {
-    super();
-    this.node = null;
-    this.originalProperties = {};
-    this.saved = false;
-    this.isLayoutCreated = false;
-    
-    this.element = $el("div.comfy-modal.custom-dialog", {
-      parent: document.body,
-      style: { display: "flex", flexDirection: "column" }
-    }, [
-      $el("div.comfy-modal-content", this.createTabs())
-    ]);
-  }
-
-  createTabs() {
-    // Определение вкладок
-    const tabsInfo = [
-      { name: "Inputs", id: "inputs", placeholder: "Inputs (one per line)\nvar1: STRING\nvar2: INT" },
-      { name: "Outputs", id: "outputs", placeholder: "Outputs (one per line)\nout1: STRING\nout2: INT" },
-      { name: "Widgets", id: "widgets" },
-      { name: "PyCode", id: "pycode", placeholder: "Enter Python code here..." }
-    ];
-
-    // Создаём панель кнопок для вкладок
-    const tabButtons = tabsInfo.map(tab => {
-      // Создаём кнопку без data-атрибута
-      const button = $el("button.tab-button", {}, tab.name);
-    
-      // Явно устанавливаем button.dataset.tab
-      button.dataset.tab = tab.id;
-    
-      return button;
-    });
-    const tabsContainer = $el("div.tabs", tabButtons);
-
-    // Создаём содержимое для каждой вкладки
-    const tabContents = tabsInfo.map(tab => {
-      let content;
-      if (tab.id === "widgets") {
-        content = $el("div", { id: "widget-editor" });
-      } else {
-        content = $el("textarea", {
-          id: `${tab.id}-textarea`,
-          placeholder: tab.placeholder || ""
-        });
-      }
-      const container = $el("div.tab-content", {}, [content]);
-      container.dataset.tab = tab.id;
-      container.style.flex = "1 1 auto";
-      return container;
-    });
-
-    return [tabsContainer, ...tabContents];
-  }
-
-  createButton(name, callback) {
-    const button = document.createElement("button");
-    button.innerText = name;
-    button.addEventListener("click", callback);
-    return button;
-  }
-
-  createLeftButton(name, callback) {
-    const button = this.createButton(name, callback);
-    button.style.cssFloat = "left";
-    button.style.marginRight = "4px";
-    return button;
-  }
-
-  createRightButton(name, callback) {
-    const button = this.createButton(name, callback);
-    button.style.cssFloat = "right";
-    button.style.marginLeft = "4px";
-    return button;
-  }
-
-  setLayout() {
-    const bottomPanel = document.createElement("div");
-    Object.assign(bottomPanel.style, {
-      position: "absolute",
-      bottom: "0px",
-      left: "20px",
-      right: "20px",
-      height: "50px"
-    });
-    this.element.appendChild(bottomPanel);
-
-    this.saveButton = this.createLeftButton("Save", () => this.save());
-    const cancelButton = this.createRightButton("Cancel", () => this.close());
-    bottomPanel.appendChild(this.saveButton);
-    bottomPanel.appendChild(cancelButton);
-
-    // Следим за изменением видимости диалога
-    const observer = new MutationObserver(mutations => {
-      mutations.forEach(mutation => {
-        if (mutation.type === "attributes" && mutation.attributeName === "style") {
-          if (this.lastDisplayStyle && this.lastDisplayStyle !== "none" && this.element.style.display === "none") {
-            ComfyApp.onClipspaceEditorClosed();
-          }
-          this.lastDisplayStyle = this.element.style.display;
+    static getInstance() {
+        if (!CustomizeDialog.instance) {
+            CustomizeDialog.instance = new CustomizeDialog();
         }
-      });
-    });
-    observer.observe(this.element, { attributes: true });
+        return CustomizeDialog.instance;
+    }
 
-    this.injectStyles();
-  }
+    constructor() {
+        super();
+        this.node = null;
+        this.originalProperties = {};
+        this.saved = false;
+        this.isLayoutCreated = false;
 
-  injectStyles() {
-    const style = document.createElement("style");
-    style.textContent = `
+        this.element = $el("div.comfy-modal.custom-dialog", {
+            parent: document.body,
+            style: { display: "flex", flexDirection: "column" }
+        }, [
+            $el("div.comfy-modal-content", this.createTabs())
+        ]);
+    }
+
+    createTabs() {
+        // Определение вкладок
+        const tabsInfo = [
+            { name: "Inputs", id: "inputs", placeholder: "Inputs (one per line)\nvar1: STRING\nvar2: INT" },
+            { name: "Outputs", id: "outputs", placeholder: "Outputs (one per line)\nout1: STRING\nout2: INT" },
+            { name: "Widgets", id: "widgets" },
+            { name: "PyCode", id: "pycode", placeholder: "Enter Python code here..." }
+        ];
+
+        // Создаём панель кнопок для вкладок
+        const tabButtons = tabsInfo.map(tab => {
+            // Создаём кнопку без data-атрибута
+            const button = $el("button.tab-button", {}, tab.name);
+
+            // Явно устанавливаем button.dataset.tab
+            button.dataset.tab = tab.id;
+
+            return button;
+        });
+        const tabsContainer = $el("div.tabs", tabButtons);
+
+        // Создаём содержимое для каждой вкладки
+        const tabContents = tabsInfo.map(tab => {
+            let content;
+            if (tab.id === "widgets") {
+                content = $el("div", { id: "widget-editor" });
+            } else {
+                content = $el("textarea", {
+                    id: `${tab.id}-textarea`,
+                    placeholder: tab.placeholder || ""
+                });
+            }
+            const container = $el("div.tab-content", {}, [content]);
+            container.dataset.tab = tab.id;
+            container.style.flex = "1 1 auto";
+            return container;
+        });
+
+        return [tabsContainer, ...tabContents];
+    }
+
+    createButton(name, callback) {
+        const button = document.createElement("button");
+        button.innerText = name;
+        button.addEventListener("click", callback);
+        return button;
+    }
+
+    createLeftButton(name, callback) {
+        const button = this.createButton(name, callback);
+        button.style.cssFloat = "left";
+        button.style.marginRight = "4px";
+        return button;
+    }
+
+    createRightButton(name, callback) {
+        const button = this.createButton(name, callback);
+        button.style.cssFloat = "right";
+        button.style.marginLeft = "4px";
+        return button;
+    }
+
+    setLayout() {
+        const bottomPanel = document.createElement("div");
+        Object.assign(bottomPanel.style, {
+            position: "absolute",
+            bottom: "0px",
+            left: "20px",
+            right: "20px",
+            height: "50px"
+        });
+        this.element.appendChild(bottomPanel);
+
+        this.saveButton = this.createLeftButton("Save", () => this.save());
+        const cancelButton = this.createRightButton("Cancel", () => this.close());
+        bottomPanel.appendChild(this.saveButton);
+        bottomPanel.appendChild(cancelButton);
+
+        // Следим за изменением видимости диалога
+        const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                if (mutation.type === "attributes" && mutation.attributeName === "style") {
+                    if (this.lastDisplayStyle && this.lastDisplayStyle !== "none" && this.element.style.display === "none") {
+                        ComfyApp.onClipspaceEditorClosed();
+                    }
+                    this.lastDisplayStyle = this.element.style.display;
+                }
+            });
+        });
+        observer.observe(this.element, { attributes: true });
+
+        this.injectStyles();
+    }
+
+    injectStyles() {
+        const style = document.createElement("style");
+        style.textContent = `
       .custom-dialog {
         --bg-primary: #1a1a1a;
         --bg-secondary: #2d2d2d;
@@ -255,160 +255,160 @@ export class CustomizeDialog extends ComfyDialog {
         margin-top: -1px;
       }
     `;
-    document.head.appendChild(style);
-  }
-
-  show(nodeData, node) {
-    this.node = node;
-    this.nodeData = nodeData;
-    // Клонируем начальные свойства для возможности восстановления
-    this.originalProperties = {
-      widgets: node.properties.widgets,
-      inputs: node.properties.inputs,
-      outputs: node.properties.outputs,
-      pycode: node.properties.pycode
-    };
-
-    if (!this.isLayoutCreated) {
-      this.setLayout();
-      this.isLayoutCreated = true;
+        document.head.appendChild(style);
     }
 
-    Object.assign(this.element.style, {
-      display: "flex",
-      flexDirection: "column",
-      width: "80vw",
-      height: "80vh",
-      maxWidth: "100vw",
-      maxHeight: "100vh",
-      padding: "0",
-      zIndex: 8888
-    });
+    show(nodeData, node) {
+        this.node = node;
+        this.nodeData = nodeData;
+        // Клонируем начальные свойства для возможности восстановления
+        this.originalProperties = {
+            widgets: node.properties.widgets,
+            inputs: node.properties.inputs,
+            outputs: node.properties.outputs,
+            pycode: node.properties.pycode
+        };
 
-    this.setTextareasContent();
-    this.addTabListeners();
-    // Активируем первую вкладку по умолчанию
-    const firstTab = this.element.querySelector(".tab-button");
-    if (firstTab) firstTab.classList.add("active");
-  }
+        if (!this.isLayoutCreated) {
+            this.setLayout();
+            this.isLayoutCreated = true;
+        }
 
-  setTextareasContent() {
-    const inputsTextarea = this.element.querySelector("#inputs-textarea");
-    if (inputsTextarea) inputsTextarea.value = this.node.properties.inputs;
-
-    const outputsTextarea = this.element.querySelector("#outputs-textarea");
-    if (outputsTextarea) outputsTextarea.value = this.node.properties.outputs;
-
-    const pycodeTextarea = this.element.querySelector("#pycode-textarea");
-    if (pycodeTextarea) pycodeTextarea.value = this.node.properties.pycode;
-
-    // Рендерим редактор виджетов
-    this.renderWidgetManagerInline();
-  }
-
-  addTabListeners() {
-    const tabButtons = this.element.querySelectorAll(".tab-button");
-    const tabContents = this.element.querySelectorAll(".tab-content");
-
-    tabButtons.forEach(button => {
-      button.addEventListener("click", () => {
-        // Снимаем активность со всех кнопок и контента
-        tabButtons.forEach(btn => btn.classList.remove("active"));
-        tabContents.forEach(content => {
-          content.style.display = "none";
-          content.classList.remove("active");
+        Object.assign(this.element.style, {
+            display: "flex",
+            flexDirection: "column",
+            width: "80vw",
+            height: "80vh",
+            maxWidth: "100vw",
+            maxHeight: "100vh",
+            padding: "0",
+            zIndex: 8888
         });
-        // Активируем выбранную вкладку
-        button.classList.add("active");
-        const tabId = button.dataset.tab;
-        tabContents.forEach(content => {
-          if (content.dataset.tab === tabId) {
-            content.style.display = "block";
-            content.classList.add("active");
-          }
-        });
-      });
-    });
 
-    // Устанавливаем активной первую вкладку
-    if (tabButtons.length) tabButtons[0].click();
-  }
-
-  renderWidgetManagerInline() {
-    const container = this.element.querySelector("#widget-editor");
-    if (!container) return;
-    container.innerHTML = "";
-
-    const widgetsContainer = document.createElement("div");
-    widgetsContainer.className = "widget-manager-container";
-
-    const addWidgetBtn = document.createElement("button");
-    addWidgetBtn.textContent = "Add Widget";
-    addWidgetBtn.className = "add-widget-btn";
-    addWidgetBtn.onclick = () => this.showInlineWidgetForm();
-    widgetsContainer.appendChild(addWidgetBtn);
-
-    // Создаём таблицу виджетов
-    const table = document.createElement("table");
-    table.className = "widget-table";
-    const thead = document.createElement("thead");
-    const headerRow = document.createElement("tr");
-    ["Type", "Name", "Value", "Actions"].forEach(text => {
-      const th = document.createElement("th");
-      th.textContent = text;
-      headerRow.appendChild(th);
-    });
-    thead.appendChild(headerRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement("tbody");
-    let widgets = [];
-    try {
-      widgets = JSON.parse(this.node.properties.widgets);
-    } catch {
-      widgets = [];
+        this.setTextareasContent();
+        this.addTabListeners();
+        // Активируем первую вкладку по умолчанию
+        const firstTab = this.element.querySelector(".tab-button");
+        if (firstTab) firstTab.classList.add("active");
     }
 
-    widgets.forEach((widget, index) => {
-      const row = document.createElement("tr");
-      ["type", "name", "value"].forEach(key => {
-        const td = document.createElement("td");
-        td.textContent = widget[key];
-        row.appendChild(td);
-      });
-      const tdActions = document.createElement("td");
-      const editBtn = document.createElement("button");
-      editBtn.textContent = "Edit";
-      editBtn.onclick = () => this.showInlineWidgetForm(widget, index);
-      tdActions.appendChild(editBtn);
+    setTextareasContent() {
+        const inputsTextarea = this.element.querySelector("#inputs-textarea");
+        if (inputsTextarea) inputsTextarea.value = this.node.properties.inputs;
 
-      const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "Delete";
-      deleteBtn.style.marginLeft = "5px";
-      deleteBtn.onclick = () => {
-        widgets.splice(index, 1);
-        this.node.properties.widgets = JSON.stringify(widgets, null, 2);
+        const outputsTextarea = this.element.querySelector("#outputs-textarea");
+        if (outputsTextarea) outputsTextarea.value = this.node.properties.outputs;
+
+        const pycodeTextarea = this.element.querySelector("#pycode-textarea");
+        if (pycodeTextarea) pycodeTextarea.value = this.node.properties.pycode;
+
+        // Рендерим редактор виджетов
         this.renderWidgetManagerInline();
-      };
-      tdActions.appendChild(deleteBtn);
-      row.appendChild(tdActions);
-      tbody.appendChild(row);
-    });
-    table.appendChild(tbody);
-    widgetsContainer.appendChild(table);
-    container.appendChild(widgetsContainer);
-  }
+    }
 
-  showInlineWidgetForm(widgetToEdit = null, editIndex = null) {
-    const container = this.element.querySelector("#widget-editor");
-    if (!container) return;
+    addTabListeners() {
+        const tabButtons = this.element.querySelectorAll(".tab-button");
+        const tabContents = this.element.querySelectorAll(".tab-content");
 
-    // Удаление предыдущей формы
-    const existingForm = container.querySelector(".widget-form-inline");
-    if (existingForm) existingForm.remove();
+        tabButtons.forEach(button => {
+            button.addEventListener("click", () => {
+                // Снимаем активность со всех кнопок и контента
+                tabButtons.forEach(btn => btn.classList.remove("active"));
+                tabContents.forEach(content => {
+                    content.style.display = "none";
+                    content.classList.remove("active");
+                });
+                // Активируем выбранную вкладку
+                button.classList.add("active");
+                const tabId = button.dataset.tab;
+                tabContents.forEach(content => {
+                    if (content.dataset.tab === tabId) {
+                        content.style.display = "block";
+                        content.classList.add("active");
+                    }
+                });
+            });
+        });
 
-    // Создание элементов формы через шаблонную строку
-    const formHTML = `
+        // Устанавливаем активной первую вкладку
+        if (tabButtons.length) tabButtons[0].click();
+    }
+
+    renderWidgetManagerInline() {
+        const container = this.element.querySelector("#widget-editor");
+        if (!container) return;
+        container.innerHTML = "";
+
+        const widgetsContainer = document.createElement("div");
+        widgetsContainer.className = "widget-manager-container";
+
+        const addWidgetBtn = document.createElement("button");
+        addWidgetBtn.textContent = "Add Widget";
+        addWidgetBtn.className = "add-widget-btn";
+        addWidgetBtn.onclick = () => this.showInlineWidgetForm();
+        widgetsContainer.appendChild(addWidgetBtn);
+
+        // Создаём таблицу виджетов
+        const table = document.createElement("table");
+        table.className = "widget-table";
+        const thead = document.createElement("thead");
+        const headerRow = document.createElement("tr");
+        ["Type", "Name", "Value", "Actions"].forEach(text => {
+            const th = document.createElement("th");
+            th.textContent = text;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        let widgets = [];
+        try {
+            widgets = JSON.parse(this.node.properties.widgets);
+        } catch {
+            widgets = [];
+        }
+
+        widgets.forEach((widget, index) => {
+            const row = document.createElement("tr");
+            ["type", "name", "value"].forEach(key => {
+                const td = document.createElement("td");
+                td.textContent = widget[key];
+                row.appendChild(td);
+            });
+            const tdActions = document.createElement("td");
+            const editBtn = document.createElement("button");
+            editBtn.textContent = "Edit";
+            editBtn.onclick = () => this.showInlineWidgetForm(widget, index);
+            tdActions.appendChild(editBtn);
+
+            const deleteBtn = document.createElement("button");
+            deleteBtn.textContent = "Delete";
+            deleteBtn.style.marginLeft = "5px";
+            deleteBtn.onclick = () => {
+                widgets.splice(index, 1);
+                this.node.properties.widgets = JSON.stringify(widgets, null, 2);
+                this.renderWidgetManagerInline();
+            };
+            tdActions.appendChild(deleteBtn);
+            row.appendChild(tdActions);
+            tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
+        widgetsContainer.appendChild(table);
+        container.appendChild(widgetsContainer);
+    }
+
+    showInlineWidgetForm(widgetToEdit = null, editIndex = null) {
+        const container = this.element.querySelector("#widget-editor");
+        if (!container) return;
+
+        // Удаление предыдущей формы
+        const existingForm = container.querySelector(".widget-form-inline");
+        if (existingForm) existingForm.remove();
+
+        // Создание элементов формы через шаблонную строку
+        const formHTML = `
       <div class="widget-form-inline" style="position: relative; z-index: 1; backdrop-filter: blur(2px);">
         <div class="form-fields">
           ${this.createFormFieldsHTML(widgetToEdit)}
@@ -419,53 +419,53 @@ export class CustomizeDialog extends ComfyDialog {
         </div>
       </div>
     `;
-    
-    container.insertAdjacentHTML("beforeend", formHTML);
-    const form = container.querySelector(".widget-form-inline");
 
-    // Получение ссылок на элементы формы
-    const typeSelect = form.querySelector("[data-field='type']");
-    const nameInput = form.querySelector("[data-field='name']");
-    const valueInput = form.querySelector("[data-field='value']");
-    const minInput = form.querySelector("[data-field='min']");
-    const maxInput = form.querySelector("[data-field='max']");
-    const stepInput = form.querySelector("[data-field='step']");
-    const comboInput = form.querySelector("[data-field='combo-values']");
-    const separatorInput = form.querySelector("[data-field='combo-separator']");
+        container.insertAdjacentHTML("beforeend", formHTML);
+        const form = container.querySelector(".widget-form-inline");
 
-    // Инициализация значений
-    this.initFormValues(widgetToEdit, {
-      typeSelect,
-      minInput,
-      maxInput,
-      stepInput
-    });
+        // Получение ссылок на элементы формы
+        const typeSelect = form.querySelector("[data-field='type']");
+        const nameInput = form.querySelector("[data-field='name']");
+        const valueInput = form.querySelector("[data-field='value']");
+        const minInput = form.querySelector("[data-field='min']");
+        const maxInput = form.querySelector("[data-field='max']");
+        const stepInput = form.querySelector("[data-field='step']");
+        const comboInput = form.querySelector("[data-field='combo-values']");
+        const separatorInput = form.querySelector("[data-field='combo-separator']");
 
-    // Управление видимостью полей
-    const updateVisibility = () => this.updateFieldVisibility(typeSelect.value, form);
-    typeSelect.addEventListener("change", updateVisibility);
-    updateVisibility();
+        // Инициализация значений
+        this.initFormValues(widgetToEdit, {
+            typeSelect,
+            minInput,
+            maxInput,
+            stepInput
+        });
 
-    // Обработчики событий
-    form.querySelector(".save-btn").addEventListener("click", () => 
-      this.handleFormSave(form, editIndex, widgetToEdit)
-    );
-    
-    form.querySelector(".cancel-btn").addEventListener("click", () => 
-      form.remove()
-    );
-}
+        // Управление видимостью полей
+        const updateVisibility = () => this.updateFieldVisibility(typeSelect.value, form);
+        typeSelect.addEventListener("change", updateVisibility);
+        updateVisibility();
 
-// Вспомогательные методы:
+        // Обработчики событий
+        form.querySelector(".save-btn").addEventListener("click", () =>
+            this.handleFormSave(form, editIndex, widgetToEdit)
+        );
 
-createFormFieldsHTML(widget) {
-    return `
+        form.querySelector(".cancel-btn").addEventListener("click", () =>
+            form.remove()
+        );
+    }
+
+    // Вспомогательные методы:
+
+    createFormFieldsHTML(widget) {
+        return `
       <div class="form-field">
         <label>Type</label>
         <select data-field="type">
           ${['INT', 'FLOAT', 'STRING', 'MSTRING', 'BOOLEAN', 'COMBO']
-            .map(opt => `<option value="${opt}" ${widget?.type === opt ? 'selected' : ''}>${opt}</option>`)
-            .join('')}
+                .map(opt => `<option value="${opt}" ${widget?.type === opt ? 'selected' : ''}>${opt}</option>`)
+                .join('')}
         </select>
       </div>
       <div class="form-field">
@@ -499,113 +499,113 @@ createFormFieldsHTML(widget) {
                value="${widget?.separator || ','}">
       </div>
     `;
-}
-
-updateFieldVisibility(selectedType, form) {
-    const isNumberType = ['INT', 'FLOAT'].includes(selectedType);
-    const isComboType = selectedType === 'COMBO';
-
-    form.querySelectorAll('.number-field').forEach(el => 
-        el.style.display = isNumberType ? 'block' : 'none'
-    );
-
-    form.querySelectorAll('.combo-field').forEach(el => 
-        el.style.display = isComboType ? 'block' : 'none'
-    );
-}
-
-initFormValues(widget, fields) {
-    if (!widget) return;
-    
-    // Для числовых полей устанавливаем минимальные допустимые значения
-    fields.minInput.min = 0;
-    fields.maxInput.min = fields.minInput.value;
-    fields.stepInput.min = 0.1;
-}
-
-async handleFormSave(form, editIndex, widgetToEdit) {
-    const getValue = (field) => form.querySelector(`[data-field="${field}"]`).value;
-    
-    const newWidget = {
-        type: getValue('type'),
-        name: getValue('name').trim(),
-        value: getValue('value'),
-    };
-
-    // Валидация
-    if (!newWidget.name) {
-        this.showError('Name is required', form.querySelector('[data-field="name"]'));
-        return;
     }
 
-    // Добавление дополнительных полей по типу
-    switch(newWidget.type) {
-        case 'INT':
-        case 'FLOAT':
-            newWidget.min = parseFloat(getValue('min'));
-            newWidget.max = parseFloat(getValue('max'));
-            newWidget.step = parseFloat(getValue('step'));
-            break;
-            
-        case 'COMBO':
-            const separator = getValue('combo-separator') || ',';
-            newWidget.values = getValue('combo-values')
-                .split(separator)
-                .map(v => v.trim())
-                .filter(Boolean);
-            newWidget.separator = separator;
-            break;
+    updateFieldVisibility(selectedType, form) {
+        const isNumberType = ['INT', 'FLOAT'].includes(selectedType);
+        const isComboType = selectedType === 'COMBO';
+
+        form.querySelectorAll('.number-field').forEach(el =>
+            el.style.display = isNumberType ? 'block' : 'none'
+        );
+
+        form.querySelectorAll('.combo-field').forEach(el =>
+            el.style.display = isComboType ? 'block' : 'none'
+        );
     }
 
-    // Обновление списка виджетов
-    try {
-        const widgets = JSON.parse(this.node.properties.widgets || '[]');
-        
-        if (widgetToEdit && editIndex !== null) {
-            widgets[editIndex] = newWidget;
-        } else {
-            widgets.push(newWidget);
+    initFormValues(widget, fields) {
+        if (!widget) return;
+
+        // Для числовых полей устанавливаем минимальные допустимые значения
+        fields.minInput.min = 0;
+        fields.maxInput.min = fields.minInput.value;
+        fields.stepInput.min = 0.1;
+    }
+
+    async handleFormSave(form, editIndex, widgetToEdit) {
+        const getValue = (field) => form.querySelector(`[data-field="${field}"]`).value;
+
+        const newWidget = {
+            type: getValue('type'),
+            name: getValue('name').trim(),
+            value: getValue('value'),
+        };
+
+        // Валидация
+        if (!newWidget.name) {
+            this.showError('Name is required', form.querySelector('[data-field="name"]'));
+            return;
         }
-        
-        this.node.properties.widgets = JSON.stringify(widgets, null, 2);
-        this.renderWidgetManagerInline();
-        form.remove();
-    } catch (error) {
-        this.showError('Error saving widgets: ' + error.message);
+
+        // Добавление дополнительных полей по типу
+        switch (newWidget.type) {
+            case 'INT':
+            case 'FLOAT':
+                newWidget.min = parseFloat(getValue('min'));
+                newWidget.max = parseFloat(getValue('max'));
+                newWidget.step = parseFloat(getValue('step'));
+                break;
+
+            case 'COMBO':
+                const separator = getValue('combo-separator') || ',';
+                newWidget.values = getValue('combo-values')
+                    .split(separator)
+                    .map(v => v.trim())
+                    .filter(Boolean);
+                newWidget.separator = separator;
+                break;
+        }
+
+        // Обновление списка виджетов
+        try {
+            const widgets = JSON.parse(this.node.properties.widgets || '[]');
+
+            if (widgetToEdit && editIndex !== null) {
+                widgets[editIndex] = newWidget;
+            } else {
+                widgets.push(newWidget);
+            }
+
+            this.node.properties.widgets = JSON.stringify(widgets, null, 2);
+            this.renderWidgetManagerInline();
+            form.remove();
+        } catch (error) {
+            this.showError('Error saving widgets: ' + error.message);
+        }
     }
-}
 
-showError(message, element = null) {
-    // Улучшенный вывод ошибок с подсветкой поля
-    if (element) {
-        element.style.border = '1px solid red';
-        element.focus();
+    showError(message, element = null) {
+        // Улучшенный вывод ошибок с подсветкой поля
+        if (element) {
+            element.style.border = '1px solid red';
+            element.focus();
+        }
+        console.error(message);
+        // Здесь лучше использовать кастомный модальный диалог вместо alert
+        alert(message);
     }
-    console.error(message);
-    // Здесь лучше использовать кастомный модальный диалог вместо alert
-    alert(message);
-}
 
-  save() {
-    // Обновляем данные из текстовых полей
-    const inputsTextarea = this.element.querySelector("#inputs-textarea");
-    if (inputsTextarea) this.node.properties.inputs = inputsTextarea.value.trim();
-    const outputsTextarea = this.element.querySelector("#outputs-textarea");
-    if (outputsTextarea) this.node.properties.outputs = outputsTextarea.value.trim();
-    const pycodeTextarea = this.element.querySelector("#pycode-textarea");
-    if (pycodeTextarea) this.node.properties.pycode = pycodeTextarea.value;
+    save() {
+        // Обновляем данные из текстовых полей
+        const inputsTextarea = this.element.querySelector("#inputs-textarea");
+        if (inputsTextarea) this.node.properties.inputs = inputsTextarea.value.trim();
+        const outputsTextarea = this.element.querySelector("#outputs-textarea");
+        if (outputsTextarea) this.node.properties.outputs = outputsTextarea.value.trim();
+        const pycodeTextarea = this.element.querySelector("#pycode-textarea");
+        if (pycodeTextarea) this.node.properties.pycode = pycodeTextarea.value;
 
-    NodeHelper.createWidgets(this.nodeData, this.node);
-    this.saved = true;
-    this.close();
-  }
-
-  close() {
-    if (!this.saved) {
-      // В случае отмены восстанавливаем исходные данные
-      Object.assign(this.node.properties, this.originalProperties);
+        NodeHelper.createWidgets(this.nodeData, this.node);
+        this.saved = true;
+        this.close();
     }
-    this.saved = false;
-    super.close();
-  }
+
+    close() {
+        if (!this.saved) {
+            // В случае отмены восстанавливаем исходные данные
+            Object.assign(this.node.properties, this.originalProperties);
+        }
+        this.saved = false;
+        super.close();
+    }
 }
