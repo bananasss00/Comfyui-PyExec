@@ -180,17 +180,23 @@ export class CustomizeDialog extends ComfyDialog {
         border-bottom: 1px solid var(--border-color);
         color: var(--text-primary);
       }
-      .custom-dialog .table-action-btn {
-        border: none;
-        border-radius: 4px;
-        padding: 6px 12px;
-        transition: all 0.2s;
-        background: var(--border-color);
-        color: var(--text-primary);
-      }
-      .custom-dialog .table-action-btn:hover {
-        background: var(--bg-primary);
-      }
+        .custom-dialog .table-action-btn {
+            font-size: 16px;
+            padding: 4px 8px;
+            background: none !important;
+            border: none;
+        }
+
+        .custom-dialog .add-widget-btn {
+            margin-bottom: 10px;
+            padding: 6px 12px;
+            background: var(--primary-accent) !important;
+        }
+
+        .custom-dialog .table-action-btn:hover {
+            transform: scale(1.1);
+            background: none;
+        }
       .custom-dialog .widget-form-inline {
         background: var(--bg-secondary);
         border-radius: 8px;
@@ -379,8 +385,9 @@ export class CustomizeDialog extends ComfyDialog {
         widgetsContainer.className = "widget-manager-container";
 
         const addWidgetBtn = document.createElement("button");
-        addWidgetBtn.textContent = "Add Widget";
-        addWidgetBtn.className = "add-widget-btn";
+        addWidgetBtn.innerHTML = "📄";
+        addWidgetBtn.title = "Add Widget";
+        addWidgetBtn.className = "add-widget-btn table-action-btn";
         addWidgetBtn.onclick = () => this.showInlineWidgetForm();
         widgetsContainer.appendChild(addWidgetBtn);
 
@@ -468,19 +475,26 @@ export class CustomizeDialog extends ComfyDialog {
             // Столбец действий (редактирование, клонирование, удаление)
             const tdActions = document.createElement("td");
             const editBtn = document.createElement("button");
-            editBtn.textContent = "Edit";
+            editBtn.textContent = "✏️";
+            editBtn.title = "Edit";
+            editBtn.className = "table-action-btn";
             editBtn.onclick = () => this.showInlineWidgetForm(widget, index);
             tdActions.appendChild(editBtn);
 
             const cloneBtn = document.createElement("button");
-            cloneBtn.textContent = "Clone";
+            cloneBtn.textContent = "⎘";
+            cloneBtn.title = "Clone";
+            cloneBtn.className = "table-action-btn";
             cloneBtn.style.marginLeft = "5px";
             cloneBtn.onclick = () => this.cloneWidget(widget);
             tdActions.appendChild(cloneBtn);
 
             const deleteBtn = document.createElement("button");
-            deleteBtn.textContent = "Delete";
+            deleteBtn.textContent = "🗑"; // Корзина
+            deleteBtn.title = "Delete";
+            deleteBtn.className = "table-action-btn";
             deleteBtn.style.marginLeft = "5px";
+            deleteBtn.style.color = "#ff4444";
             deleteBtn.onclick = () => {
                 widgets.splice(index, 1);
                 this.node.properties.widgets = JSON.stringify(widgets, null, 2);
