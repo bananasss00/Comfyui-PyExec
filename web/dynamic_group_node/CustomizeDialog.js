@@ -198,11 +198,11 @@ export class CustomizeDialog extends ComfyDialog {
       .custom-dialog button:hover {
         background: var(--primary-hover);
       }
-      .custom-dialog .tab-content { 
+      .custom-dialog .tab-content {
         display: none;
         background: var(--bg-primary);
       }
-      .custom-dialog .tab-content.active { 
+      .custom-dialog .tab-content.active {
         display: block;
         animation: fadeIn 0.3s;
       }
@@ -218,9 +218,9 @@ export class CustomizeDialog extends ComfyDialog {
         background: var(--primary-accent);
         color: var(--text-primary);
       }
-      @keyframes fadeIn { 
-        from { opacity: 0; } 
-        to { opacity: 1; } 
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
       .custom-dialog textarea {
         min-height: calc(80vh - 200px);
@@ -237,7 +237,7 @@ export class CustomizeDialog extends ComfyDialog {
         height: 100%;
       }
       .custom-dialog .tabs {
-        flex-shrink: 0; 
+        flex-shrink: 0;
         background: var(--bg-secondary);
         z-index: 2;
         position: relative;
@@ -382,6 +382,12 @@ export class CustomizeDialog extends ComfyDialog {
             editBtn.onclick = () => this.showInlineWidgetForm(widget, index);
             tdActions.appendChild(editBtn);
 
+            const cloneBtn = document.createElement("button");
+            cloneBtn.textContent = "Clone";
+            cloneBtn.style.marginLeft = "5px";
+            cloneBtn.onclick = () => this.cloneWidget(widget);
+            tdActions.appendChild(cloneBtn);
+
             const deleteBtn = document.createElement("button");
             deleteBtn.textContent = "Delete";
             deleteBtn.style.marginLeft = "5px";
@@ -490,12 +496,12 @@ export class CustomizeDialog extends ComfyDialog {
       </div>
       <div class="form-field combo-field">
         <label>Combo Values</label>
-        <input data-field="combo-values" type="text" 
+        <input data-field="combo-values" type="text"
                value="${widget?.values?.join(widget?.separator || ',') || ''}">
       </div>
       <div class="form-field combo-field">
         <label>Combo Separator</label>
-        <input data-field="combo-separator" type="text" 
+        <input data-field="combo-separator" type="text"
                value="${widget?.separator || ','}">
       </div>
     `;
@@ -572,6 +578,20 @@ export class CustomizeDialog extends ComfyDialog {
             form.remove();
         } catch (error) {
             this.showError('Error saving widgets: ' + error.message);
+        }
+    }
+
+    cloneWidget(widget) {
+        const clonedWidget = { ...widget };
+        clonedWidget.name += '_clone';
+
+        try {
+            const widgets = JSON.parse(this.node.properties.widgets || '[]');
+            widgets.push(clonedWidget);
+            this.node.properties.widgets = JSON.stringify(widgets, null, 2);
+            this.renderWidgetManagerInline();
+        } catch (error) {
+            this.showError('Error cloning widget: ' + error.message);
         }
     }
 
