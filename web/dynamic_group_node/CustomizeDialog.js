@@ -231,6 +231,11 @@ export class CustomizeDialog extends ComfyDialog {
       .custom-dialog button:hover {
         background: var(--primary-hover);
       }
+      .custom-dialog .widget-manager-container {
+        max-height: 65vh;
+        overflow-y: auto;
+        box-sizing: border-box;
+      }
       .custom-dialog .tab-content {
         display: none;
         background: var(--bg-primary);
