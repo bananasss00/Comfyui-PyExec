@@ -14,18 +14,45 @@ export class CustomizeDialog extends ComfyDialog {
     }
 
     constructor() {
-        super();
-        this.node = null;
-        this.originalProperties = {};
-        this.saved = false;
-        this.isLayoutCreated = false;
-
-        this.element = $el("div.comfy-modal.custom-dialog", {
-            parent: document.body,
-            style: { display: "flex", flexDirection: "column" }
-        }, [
-            $el("div.comfy-modal-content", this.createTabs())
-        ]);
+      super();
+      this.node = null;
+      this.originalProperties = {};
+      this.saved = false;
+      this.isLayoutCreated = false;
+      this.isDragging = false;
+      this.dragStartX = 0;
+      this.dragStartY = 0;
+      this.initialX = 0;
+      this.initialY = 0;
+    
+      this.element = $el("div.comfy-modal.custom-dialog", {
+        parent: document.body,
+        style: { 
+          display: "flex", 
+          flexDirection: "column",
+          position: "fixed",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)"
+        }
+      }, [
+        $el("div.drag-handle", {
+          style: {
+            cursor: "move",
+            padding: "8px",
+            background: "var(--bg-secondary)",
+            display: "flex",
+            justifyContent: "flex-end"
+          }
+        }),
+        $el("div.comfy-modal-content", this.createTabs())
+      ]);
+    
+      // Добавляем обработчики событий для перетаскивания
+      const handle = this.element.querySelector(".drag-handle");
+      handle.addEventListener("mousedown", this.startDragging.bind(this));
+      document.addEventListener("mousemove", this.dragDialog.bind(this));
+      document.addEventListener("mouseup", this.stopDragging.bind(this));
     }
 
     createTabs() {
@@ -253,6 +280,15 @@ export class CustomizeDialog extends ComfyDialog {
         height: 1px;
         background: var(--border-color);
         margin-top: -1px;
+      }
+      .custom-dialog .drag-handle {
+        background: transparent;
+        cursor: move;
+        padding: 8px;
+        margin-right: 10px;
+      }
+      .custom-dialog .drag-handle:hover {
+        background: var(--border-color);
       }
     `;
         document.head.appendChild(style);
@@ -593,6 +629,32 @@ export class CustomizeDialog extends ComfyDialog {
         } catch (error) {
             this.showError('Error cloning widget: ' + error.message);
         }
+    }
+
+    startDragging(e) {
+      this.isDragging = true;
+      this.dragStartX = e.clientX;
+      this.dragStartY = e.clientY;
+      const rect = this.element.getBoundingClientRect();
+      this.initialX = rect.left;
+      this.initialY = rect.top;
+      this.element.style.transition = "none"; // Отключаем анимацию во время перетаскивания
+    }
+    
+    dragDialog(e) {
+      if (!this.isDragging) return;
+      
+      const deltaX = e.clientX - this.dragStartX;
+      const deltaY = e.clientY - this.dragStartY;
+      
+      this.element.style.left = `${this.initialX + deltaX}px`;
+      this.element.style.top = `${this.initialY + deltaY}px`;
+      this.element.style.transform = "none"; // Убираем трансформ для позиционирования через left/top
+    }
+    
+    stopDragging() {
+      this.isDragging = false;
+      this.element.style.transition = "all 0.2s ease"; // Восстанавливаем анимацию
     }
 
     showError(message, element = null) {
