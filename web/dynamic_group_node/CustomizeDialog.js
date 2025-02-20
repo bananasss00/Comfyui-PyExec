@@ -40,7 +40,7 @@ export class CustomizeDialog extends ComfyDialog {
                 style: {
                     cursor: "move",
                     padding: "8px",
-                    background: "var(--bg-secondary)",
+                    background: "transparent",
                     display: "flex",
                     justifyContent: "flex-end"
                 }
