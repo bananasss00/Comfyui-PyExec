@@ -46,3 +46,20 @@ export const addTitleButton = (nodeType, iconConfig, onClick) => {
     return original?.apply(this, args);
   });
 };
+
+export const mergeObjects = (target, source) => {
+  for (const key in source) {
+    if (source.hasOwnProperty(key)) {
+      if (typeof source[key] === 'object' && source[key] !== null) {
+        if (!target[key]) {
+          target[key] = Array.isArray(source[key]) ? [] : {};
+        }
+        mergeObjects(target[key], source[key]);
+      } else {
+        if (!target.hasOwnProperty(key)) {
+          target[key] = source[key];
+        }
+      }
+    }
+  }
+}

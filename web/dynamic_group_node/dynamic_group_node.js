@@ -2,7 +2,7 @@ import { app } from "../../../scripts/app.js";
 import { TypeRenderer } from "./TypeRenderer.js";
 import { NodeHelper } from "./NodeHelper.js";
 import { CustomizeDialog } from "./CustomizeDialog.js";
-import { decorateMethod, addTitleButton } from "./utils.js";
+import { decorateMethod, addTitleButton, mergeObjects } from "./utils.js";
 
 // Constants and helpers
 const NODE_TYPES = ["DynamicGroupNode", "DynamicGroupNode_Output"];
@@ -29,6 +29,7 @@ result='some result'
   outputs: 'out1: STRING\nout2: INT\nmy_age: INT\nweight: FLOAT\nname: STRING\nactive: BOOLEAN\ngender: STRING',
   data: {
     links: [],
+    output_links: [],
     widgets_as_inputs: [],
     widgets_values: {},
     nodes_template: '',
@@ -60,18 +61,32 @@ const NodePrototypeExtensions = (nodeData) => ({
 
     console.log("Connections change", args);
 
-    if (connected && ioSlot && link_info) {
-      const existingEntry = this.properties.data.links.find(entry => entry[0] === ioSlot.name);
-      if (!existingEntry) {
-        this.properties.data.links.push([ioSlot.name, link_info.id]);
-      } else {
-        existingEntry[1] = link_info.id;
+    // add new fields
+    mergeObjects(this.properties, DEFAULT_PROPERTIES);
+
+    if (type == LiteGraph.INPUT) {
+      if (connected && ioSlot && link_info) {
+        const existingEntry = this.properties.data.links.find(entry => entry[0] === ioSlot.name);
+        if (!existingEntry) {
+          this.properties.data.links.push([ioSlot.name, link_info.id]);
+        } else {
+          existingEntry[1] = link_info.id;
+        }
+      } 
+      else if (!connected && ioSlot && link_info) {
+        const indexToRemove = this.properties.data.links.findIndex(entry => entry[0] === ioSlot.name);
+        if (indexToRemove !== -1) {
+          this.properties.data.links.splice(indexToRemove, 1);
+        }
       }
-    } 
-    else if (!connected && ioSlot && link_info) {
-      const indexToRemove = this.properties.data.links.findIndex(entry => entry[0] === ioSlot.name);
-      if (indexToRemove !== -1) {
-        this.properties.data.links.splice(indexToRemove, 1);
+    } else if (type == LiteGraph.OUTPUT) {
+      if (ioSlot && link_info) {
+        const existingEntry = this.properties.data.output_links.find(entry => entry[0] === ioSlot.name);
+        if (!existingEntry) {
+          this.properties.data.output_links.push([ioSlot.name, ioSlot.links]);
+        } else {
+          existingEntry[1] = ioSlot.links;
+        }
       }
     }
 
@@ -109,6 +124,9 @@ const NodePrototypeExtensions = (nodeData) => ({
 
   onConfigure: function(original, ...args) {
     const ret = original?.apply(this, args);
+
+    // add new fields
+    mergeObjects(this.properties, DEFAULT_PROPERTIES);
 
     this.onPropertyChanged = (name, value) => {
       if (['inputs', 'widgets', 'outputs'].includes(name)) {

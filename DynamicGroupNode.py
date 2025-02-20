@@ -91,7 +91,6 @@ class DynamicGroupNode:
 
             # TODO: rawLink, lazy inputs support
             # DynamicGroupNode.OPTIONALS = {'dbg': ('IMAGE', {'rawLink': True})}
-
             my_namespace = types.SimpleNamespace()     
             my_namespace.__dict__.update(outputs)            
             my_namespace.__dict__.update(widgets)
@@ -113,7 +112,7 @@ class DynamicGroupNode:
 
             # print(f'result: {result}')
             captured_output = output.getvalue()
-            print(f'PyExec: {captured_output}')
+            # print(f'PyExec[NODE_ID={unique_id}]: {captured_output}')
 
             return {
                 "result": result,
@@ -123,7 +122,7 @@ class DynamicGroupNode:
         except Exception as e:
             import traceback
             stacktrace = traceback.format_exc()
-            err = f"Exception: {e}\n{stacktrace}"
+            err = f"Exception[NODE_ID={unique_id}]: {e}\n{stacktrace}"
             print(err)
             return tuple([[err]] * len(self.RETURN_TYPES))
 

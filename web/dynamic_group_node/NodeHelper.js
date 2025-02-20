@@ -52,13 +52,13 @@ export class NodeHelper {
     const size = [node.size[0], node.size[1]];
 
     // create new fields
-    if (!node.properties.data.labels) {
-      node.properties.data.labels = {
-        inputs: {},
-        outputs: {},
-        widgets: {}
-      };
-    }
+    // if (!node.properties.data.labels) {
+    //   node.properties.data.labels = {
+    //     inputs: {},
+    //     outputs: {},
+    //     widgets: {}
+    //   };
+    // }
 
     // create new fields
     NodeHelper.resetNodeElements(node);
@@ -116,6 +116,10 @@ export class NodeHelper {
     node.properties.data.links.forEach(([name, link_id]) => {
       NodeHelper.restoreLink(node, link_id, name);
     });
+    node.properties.data.output_links.forEach(([name, links]) => {
+      NodeHelper.restoreOutputLink(node, links, name);
+    });
+    app.graph.setDirtyCanvas(true);
   }
 
   static restoreLink(node, link_id, slotName) {
@@ -132,10 +136,34 @@ export class NodeHelper {
         //node.inputs[link.target_slot].link = link_id;
         link.target_slot = entryIndex;
         node.inputs[entryIndex].link = link_id;
-        app.graph.setDirtyCanvas(true);
-
         console.log(`Restored link ${link_id} from #${link.origin_id}:${link.origin_slot} to #${node.id}:${link.target_slot}`);
       }
+    }
+  }
+
+  static restoreOutputLink(node, links, slotName) {
+    const entryIndex = node.outputs.findIndex(entry => entry.name === slotName);
+    if (entryIndex !== -1) {
+      const validLinks = [];
+      // trigger link connected
+      links.forEach((link_id) => {
+        const link = graph.links[link_id];
+        if (!link)
+          return;
+
+        const slot_from = link.origin_slot;
+        const slot_to = link.target_slot;
+        const node_from = graph.getNodeById(link.origin_id);
+        const node_to = graph.getNodeById(link.target_id);
+        if (!node_from || !node_to || !node_to.inputs[slot_to])
+          return;
+
+        node_to.onConnectionsChange(LiteGraph.INPUT, slot_to, true, link, node_to.inputs[slot_to]);
+        validLinks.push(link_id);
+      });
+
+      node.outputs[entryIndex].links = validLinks;
+      console.log(`Restored output links ${validLinks} for #${node.id}:${entryIndex}`);
     }
   }
 
