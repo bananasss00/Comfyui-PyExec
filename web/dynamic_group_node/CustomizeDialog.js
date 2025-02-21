@@ -301,6 +301,12 @@ export class CustomizeDialog extends ComfyDialog {
       .custom-dialog .drag-handle:hover {
         background: var(--border-color);
       }
+      .custom-dialog .combo-field textarea {
+            min-height: auto;
+            resize: vertical;
+            // height: 2em; /* Set initial height to roughly one line */
+            overflow-y: hidden; /* Hide vertical scrollbar initially */
+        }
     `;
         document.head.appendChild(style);
     }
@@ -607,13 +613,11 @@ export class CustomizeDialog extends ComfyDialog {
       </div>
       <div class="form-field combo-field">
         <label>Combo Values</label>
-        <input data-field="combo-values" type="text"
-               value="${widget?.values?.join(widget?.separator || ',') || ''}">
+        <textarea data-field="combo-values" type="text" rows="4">${widget?.values?.join(widget?.separator || ',') || ''}</textarea>
       </div>
       <div class="form-field combo-field">
         <label>Combo Separator</label>
-        <input data-field="combo-separator" type="text"
-               value="${widget?.separator || ','}">
+        <textarea data-field="combo-separator" type="text" rows="1">${widget?.separator || ','}</textarea>
       </div>
     `;
     }
