@@ -220,7 +220,7 @@ class UnifiedCodeGenerator {
             }
 
             processedNodes.forEach(node => {
-                node.widgets.forEach(w => {
+                node.widgets?.forEach(w => {
                     if (w.type !== 'combo') return;
 
                     const name = w.name;
@@ -321,8 +321,8 @@ class UnifiedCodeGenerator {
 
         const fullCode = [
             '# AUTO-GENERATED CODE',
-            '### COMBO VALUES SECTION ###',
-            ...comboNameValues,
+            //'### COMBO VALUES SECTION ###',
+            //...comboNameValues,
             '### DEFAULT INPUTS SECTION ###',
             ...defaultLines,
             '',

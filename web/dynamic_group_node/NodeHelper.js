@@ -158,7 +158,7 @@ export class NodeHelper {
                 if (!node_from || !node_to || !node_to.inputs[slot_to])
                     return;
 
-                node_to.onConnectionsChange(LiteGraph.INPUT, slot_to, true, link, node_to.inputs[slot_to]);
+                node_to.onConnectionsChange?.(LiteGraph.INPUT, slot_to, true, link, node_to.inputs[slot_to]);
                 validLinks.push(link_id);
             });
 
