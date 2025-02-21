@@ -300,7 +300,35 @@ const copyGraphNodesDefinitions = (nodes) => {
     navigator.clipboard.writeText(code.join('\n')).catch(err => console.error('Error:', err));
 };
 
+function showComboSubMenu(value, options, e, menu, node) {
+    console.log('showComboSubMenu', arguments);
+    const behaviorOptions = [];
+
+    // node = options.node;
+    for (let widget of node.widgets) {
+        if (widget.type !== "combo") continue;
+
+        behaviorOptions.push({
+            content: widget.name,
+            callback: () => {
+                const values = widget.options.values.join('\n');
+                navigator.clipboard.writeText(values).catch(err => console.error('Error:', err));
+            }
+        })
+    }
+
+    new LiteGraph.ContextMenu(behaviorOptions, {
+        event: e,
+        callback: null,
+        parentMenu: menu,
+        node: node
+    });
+
+    return false;  // This ensures the original context menu doesn't proceed
+}
+
 function showSubMenu(value, options, e, menu, node) {
+    console.log('showSubMenu', node);
     const behaviorOptions = [
         {
             content: "Make Group Node - V2",
@@ -342,6 +370,11 @@ function showSubMenu(value, options, e, menu, node) {
                     copyGraphNodesDefinitions(graphcanvas.selected_nodes);
                 }
             }
+        },
+        {
+            content: "Copy combo values to clipboard",
+            has_submenu: true,
+            callback: (value, options, e, menu) => showComboSubMenu(value, options, e, menu, node),
         }
     ];
 
