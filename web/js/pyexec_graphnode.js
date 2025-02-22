@@ -331,18 +331,29 @@ function showSubMenu(value, options, e, menu, node) {
     console.log('showSubMenu', node);
     const behaviorOptions = [
         {
-            content: "Make Group Node - V2",
+            content: "V2 - Make Group Node",
             callback: () => {
                 let graphcanvas = LGraphCanvas.active_canvas;
                 if (!graphcanvas.selected_nodes || Object.keys(graphcanvas.selected_nodes).length <= 1) {
                     copyGraphNodes_v2([node]);
                 } else {
-                    copyGraphNodes_v2(graphcanvas.selected_nodes);
+                    copyGraphNodes_v2(graphcanvas.selected_nodes, false);
                 }
             }
         },
         {
-            content: "Paste Saved Node Template - V2",
+            content: "V2 - Make Group Node(Output)",
+            callback: () => {
+                let graphcanvas = LGraphCanvas.active_canvas;
+                if (!graphcanvas.selected_nodes || Object.keys(graphcanvas.selected_nodes).length <= 1) {
+                    copyGraphNodes_v2([node], true);
+                } else {
+                    copyGraphNodes_v2(graphcanvas.selected_nodes, true);
+                }
+            }
+        },
+        {
+            content: "V2 - Paste Saved Node Template",
             disabled: node.type !== "DynamicGroupNode_Output" || !node.properties.data.nodes_template?.length,
             callback: () => {
                 localStorage.setItem("litegrapheditor_clipboard", node.properties.data.nodes_template);

@@ -3,6 +3,7 @@ import { NodeHelper } from "../dynamic_group_node/NodeHelper.js";
 
 const NODE_TYPES = {
     REROUTE: "Reroute",
+    PY_EXEC: "DynamicGroupNode",
     PY_EXEC_OUTPUT: "DynamicGroupNode_Output"
 };
 
@@ -337,22 +338,22 @@ class UnifiedCodeGenerator {
 }
 
 // Основная функция
-export const copyGraphNodes_v2 = (nodes) => {
+export const copyGraphNodes_v2 = (nodes, isOutput) => {
     try {
         const generator = new UnifiedCodeGenerator(nodes);
         const fullCode = generator.generate();
 
-        createOutputNode(fullCode);
+        createOutputNode(fullCode, isOutput);
         navigator.clipboard.writeText(fullCode);
     } catch (error) {
         console.error('Code generation failed:', error);
     }
 };
 
-function createOutputNode(code) {
+function createOutputNode(code, isOutput) {
     const newNode = app.graph.add(LiteGraph.createNode(
-        NODE_TYPES.PY_EXEC_OUTPUT,
-        NODE_TYPES.PY_EXEC_OUTPUT, {
+        isOutput ? NODE_TYPES.PY_EXEC_OUTPUT : NODE_TYPES.PY_EXEC,
+        isOutput ? NODE_TYPES.PY_EXEC_OUTPUT : NODE_TYPES.PY_EXEC, {
         pos: [...app.canvas.canvas_mouse]
     }
     ));
