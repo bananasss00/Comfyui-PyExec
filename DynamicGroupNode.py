@@ -32,14 +32,20 @@ class ByPassTypeTuple(tuple):
 		return item
 # ---------------------------
 
-IDEs_DICT = {}
-
 class GlobalStorage:
     pass
 
 ANY_TYPE = AnyType("*")
 GLOBAL_STORAGE = GlobalStorage()
-        
+PYCODE_MD5 = {}
+
+@PromptServer.instance.routes.get("/pyexec/pycode_md5/{id}/{md5}")
+async def pycode_md5(request):
+    id = request.match_info["id"]
+    md5 = request.match_info["md5"]
+    PYCODE_MD5[id] = md5
+    return web.Response(status=201)
+
 class DynamicGroupNode:
     OPTIONALS = {}
 
@@ -65,10 +71,6 @@ class DynamicGroupNode:
 
     def doit(self, **kwargs):
         unique_id = kwargs['id']
-
-        if unique_id not in IDEs_DICT:
-            IDEs_DICT[unique_id] = self
-
         graph = GraphBuilder()
 
         try:
@@ -128,18 +130,9 @@ class DynamicGroupNode:
             print(err)
             return tuple([[err]] * len(self.RETURN_TYPES))
 
-    # @classmethod
-    # def IS_CHANGED(s, id, workflow, **kwargs):
-    #     pycode = ''
-    #     print( id, workflow, kwargs) # -> 1 None {'prompt': {}, 'dynprompt': None}
-    #     for node in workflow.get('workflow', {}).get('nodes', []):
-    #         if node.get('id', -1) == int(id):
-    #             pycode = node['properties']['pycode']
-    #             break
-        
-    #     md5_hash = s.calculate_md5(pycode)
-    #     logging.info(f'PyExec[NODE_ID={id}]: {md5_hash}')
-    #     return md5_hash
+    @classmethod
+    def IS_CHANGED(s, id, **kwargs):
+        return PYCODE_MD5.get(id, None)
 
     @classmethod
     def calculate_md5(s, string):

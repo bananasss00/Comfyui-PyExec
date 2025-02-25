@@ -754,7 +754,10 @@ export class CustomizeDialog extends ComfyDialog {
         const outputsTextarea = this.element.querySelector("#outputs-textarea");
         if (outputsTextarea) this.node.properties.outputs = outputsTextarea.value.trim();
         const pycodeTextarea = this.element.querySelector("#pycode-textarea");
-        if (pycodeTextarea) this.node.properties.pycode = pycodeTextarea.value;
+        if (pycodeTextarea) {
+            this.node.properties.pycode = pycodeTextarea.value;
+            NodeHelper.pycodeIsChanged(this.node, pycodeTextarea.value);
+        }
 
         NodeHelper.createWidgets(this.nodeData, this.node);
         this.saved = true;

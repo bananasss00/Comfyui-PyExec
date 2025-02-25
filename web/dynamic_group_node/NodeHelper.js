@@ -1,4 +1,5 @@
 import { addMultilineWidget } from "./addMultilineWidget.js";
+import { crc32 } from "./utils.js";
 
 // TODO: Convert to input, handle reload workflow
 
@@ -244,5 +245,12 @@ export class NodeHelper {
             case 'BOOLEAN': return widget.value.toLowerCase() === 'true';
             default: return widget.value;
         }
+    }
+
+    static pycodeIsChanged(node, pycode) {
+        fetch(`/pyexec/pycode_md5/${node.id}/${crc32(pycode)}`)
+        .catch(error => {
+            console.error('There was a problem with the fetch operation:', error);
+        });
     }
 }

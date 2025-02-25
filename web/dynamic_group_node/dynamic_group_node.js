@@ -133,6 +133,9 @@ const NodePrototypeExtensions = (nodeData) => ({
                 NodeHelper.createWidgets(nodeData, this);
                 console.debug("Property changed", name, value);
             }
+            else if ('pycode' === name) {
+                NodeHelper.pycodeIsChanged(this, value);
+            }
         };
 
         NodeHelper.createWidgets(nodeData, this);
