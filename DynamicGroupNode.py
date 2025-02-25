@@ -1,6 +1,8 @@
+import hashlib
 import io
 import contextlib
 import json
+import logging
 import types
 from comfy_execution.graph_utils import GraphBuilder
 from server import PromptServer
@@ -125,6 +127,25 @@ class DynamicGroupNode:
             err = f"Exception[NODE_ID={unique_id}]: {e}\n{stacktrace}"
             print(err)
             return tuple([[err]] * len(self.RETURN_TYPES))
+
+    # @classmethod
+    # def IS_CHANGED(s, id, workflow, **kwargs):
+    #     pycode = ''
+    #     print( id, workflow, kwargs) # -> 1 None {'prompt': {}, 'dynprompt': None}
+    #     for node in workflow.get('workflow', {}).get('nodes', []):
+    #         if node.get('id', -1) == int(id):
+    #             pycode = node['properties']['pycode']
+    #             break
+        
+    #     md5_hash = s.calculate_md5(pycode)
+    #     logging.info(f'PyExec[NODE_ID={id}]: {md5_hash}')
+    #     return md5_hash
+
+    @classmethod
+    def calculate_md5(s, string):
+        md5_hash = hashlib.md5()
+        md5_hash.update(string.encode('utf-8'))
+        return md5_hash.hexdigest()
 
 class DynamicGroupNode_Output(DynamicGroupNode):
     OUTPUT_NODE = True
