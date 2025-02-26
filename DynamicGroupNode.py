@@ -3,6 +3,8 @@ import io
 import contextlib
 import json
 import logging
+import sys, importlib.util
+import os
 import types
 from comfy_execution.graph_utils import GraphBuilder
 from server import PromptServer
@@ -45,6 +47,36 @@ async def pycode_md5(request):
     md5 = request.match_info["md5"]
     PYCODE_MD5[id] = md5
     return web.Response(status=201)
+    
+def import_module(path: str, module_name: str = None, force: bool = False) -> types.ModuleType:
+    def reload_module(module_name, module_path):
+        if module_name in sys.modules:
+            del sys.modules[module_name]
+
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+        return module
+
+    if module_name is None:
+        module_name = os.path.splitext(os.path.basename(path))[0]
+    
+    if module_name in sys.modules and not force:
+        return sys.modules[module_name]
+    
+    parent_path = os.path.dirname(path)
+    if parent_path not in sys.path:
+        sys.path.append(parent_path)
+
+    if os.path.isdir(path) and os.path.exists(os.path.join(path, '__init__.py')):
+        module_path = os.path.join(path, '__init__.py')
+    else:
+        module_path = path
+
+    module = reload_module(module_name, module_path)
+    return module
 
 class DynamicGroupNode:
     OPTIONALS = {}
@@ -105,6 +137,7 @@ class DynamicGroupNode:
             my_namespace.__dict__.update({
                 'gs': GLOBAL_STORAGE,
                 'graph': graph,
+                'import_module': import_module
             })
             
             # print(pycode)

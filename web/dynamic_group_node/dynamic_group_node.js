@@ -8,7 +8,28 @@ import { decorateMethod, addTitleButton, mergeObjects } from "./utils.js";
 const NODE_TYPES = ["DynamicGroupNode", "DynamicGroupNode_Output"];
 
 const DEFAULT_PROPERTIES = {
-    pycode: `out1=var1
+    pycode: `
+"""
+Available Helpers in local namespace:
+- def import_module(module_or_package_path: str, module_name: str = None, force: bool = False) -> types.ModuleType
+  This function allows you to import a module or package dynamically. It takes the path to the module or package, an optional module name, and a boolean flag to force reloading the module.
+
+- gs, instance of GlobalStorage()
+  class GlobalStorage:
+    pass
+
+  GlobalStorage is a class that allows you to store and access global variables. You can use it to store and retrieve data that needs to be shared across different nodes or executions.
+
+  Example usage:
+  if not hasattr(gs, 'sdxl'):
+      gs.sdxl = nodes.CheckpointLoaderSimple().load_checkpoint(ckpt_name=ckpt)
+  model, clip, vae = gs.sdxl
+
+- graph, instance of GraphBuilder() for building graph dynamically. GraphBuilder is a utility class provided by ComfyUI that allows you to build and manage graphs dynamically. You can use it to create and manipulate nodes and connections within the graph.
+https://docs.comfy.org/custom-nodes/backend/expansion
+"""
+
+out1=var1
 out2=var2
 my_age=MyAge
 weight=Weight
