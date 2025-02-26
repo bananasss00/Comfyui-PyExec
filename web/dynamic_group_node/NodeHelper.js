@@ -39,10 +39,13 @@ const logger = {
 };
 
 const parseConnections = (connectionString, defaultType = '*') =>
-    connectionString.trim().split('\n').map(line => {
-        const [name, type] = line.split(':').map(s => s.trim());
-        return { name: name || line.trim(), type: (type || defaultType).toUpperCase() };
-    });
+    connectionString.trim()
+        .split('\n')
+        .filter(line => line.trim() !== '')
+        .map(line => {
+            const [name, type] = line.split(':').map(s => s.trim());
+            return { name: name || line.trim(), type: (type || defaultType).toUpperCase() };
+        });
 
 // Helper class to manage node widgets
 export class NodeHelper {
